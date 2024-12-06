@@ -1,5 +1,9 @@
 # ab-server
 
+> This is a fork of the original [ab-server](https://github.com/airmash-refugees/airmash-frontend) repository, for use in [ab-docker](https://github.com/parsehex/ab-docker).
+>
+> Even though this is meant to run with a docker container, my goal is to make sure it still works standalone.
+
 Game server.
 
 Docs:
