@@ -535,6 +535,7 @@ export default class WsEndpoint {
   private bindHttpRoutes(): void {
     this.uws
       .get(`${this.path}/ping`, res => {
+        res.writeHeader('Access-Control-Allow-Origin', '*');
         res.writeHeader('Content-type', 'application/json').end('{"pong":1}');
       })
 
@@ -543,6 +544,7 @@ export default class WsEndpoint {
           this.storage.gameModeAPIResponse === '' ? '' : `,${this.storage.gameModeAPIResponse}`;
 
         res
+          .writeHeader('Access-Control-Allow-Origin', '*')
           .writeHeader('Content-type', 'application/json')
           .end(
             `{"players":${this.storage.playerList.size},"bots":${this.storage.botIdList.size},"spectators":${this.storage.playerInSpecModeList.size}${gameModeResponse}}`
