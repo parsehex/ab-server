@@ -1065,15 +1065,13 @@ export default class ServerCommandHandler extends System {
           this.emit(
             BROADCAST_CHAT_SERVER_WHISPER,
             playerId,
-            `Mode set to ${mode}. Restarting server...`
+            `Mode set to ${mode.toUpperCase()}. Restarting server...`
           );
         });
 
         // TODO update ab-frontend games list
 
-        this.log.info(__dirname);
         const shPath = path.resolve(__dirname, '../../..', 'restart-server.sh');
-        this.log.info(shPath);
 
         // run restart-server.sh
         exec(`/usr/bin/sh ${shPath}`, (error, stdout, stderr) => {
