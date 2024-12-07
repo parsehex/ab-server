@@ -1,3 +1,6 @@
+import * as fs from 'fs';
+import * as path from 'path';
+import { exec } from 'child_process';
 import { GameServerConfigInterface } from '../../config';
 import {
   BYTES_PER_KB,
@@ -1018,6 +1021,61 @@ export default class ServerCommandHandler extends System {
       this.responseServerSync(playerId);
 
       return;
+    }
+
+    const pieces = command.split(' ');
+    if (pieces[0] === 'mode') {
+      const mode = pieces[1].toLowerCase();
+      if (!mode) {
+        this.emit(BROADCAST_CHAT_SERVER_WHISPER, playerId, 'Mode not specified.');
+        return;
+      }
+
+      const modes = ['ffa', 'ctf', 'btr'];
+      if (!modes.includes(mode)) {
+        this.emit(BROADCAST_CHAT_SERVER_WHISPER, playerId, 'Invalid mode. Available modes: ');
+        return;
+      }
+
+      // update ab-server .env
+      const envPath = path.join(__dirname, '..', '.env');
+      fs.readFile(envPath, 'utf8', (err, data) => {
+        if (err) {
+          this.log.error('Error reading .env file: %o', err);
+          return;
+        }
+
+        const lines = data.split('\n');
+        const newLines = lines.map(line => {
+          if (line.startsWith('SERVER_TYPE=')) {
+            return `SERVER_TYPE="${mode.toUpperCase()}"`;
+          }
+          return line;
+        });
+
+        fs.writeFile(envPath, newLines.join('\n'), 'utf8', err => {
+          if (err) {
+            this.log.error('Error writing .env file: %o', err);
+            return;
+          }
+
+          this.emit(
+            BROADCAST_CHAT_SERVER_WHISPER,
+            playerId,
+            `Mode set to ${mode}. Restarting server...`
+          );
+        });
+
+        // run restart-server.sh
+        exec('sh restart-server.sh', (error, stdout, stderr) => {
+          if (error) {
+            this.log.error(`exec error: ${error}`);
+            return;
+          }
+          this.log.info(`stdout: ${stdout}`);
+          this.log.error(`stderr: ${stderr}`);
+        });
+      });
     }
 
     if (command === 'debug') {
