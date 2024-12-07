@@ -1050,6 +1050,9 @@ export default class ServerCommandHandler extends System {
           if (line.startsWith('SERVER_TYPE=')) {
             return `SERVER_TYPE="${mode.toUpperCase()}"`;
           }
+          if (line.startsWith('SERVER_ROOM=')) {
+            return `SERVER_room="ab-${mode}"`;
+          }
           return line;
         });
 
@@ -1066,12 +1069,14 @@ export default class ServerCommandHandler extends System {
           );
         });
 
+        // TODO update ab-frontend games list
+
         this.log.info(__dirname);
         const shPath = path.resolve(__dirname, '../../..', 'restart-server.sh');
         this.log.info(shPath);
 
         // run restart-server.sh
-        exec(`sh ${shPath}`, (error, stdout, stderr) => {
+        exec(`/usr/bin/sh ${shPath}`, (error, stdout, stderr) => {
           if (error) {
             this.log.error(`exec error: ${error}`);
             return;
