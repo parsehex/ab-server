@@ -1066,8 +1066,11 @@ export default class ServerCommandHandler extends System {
           );
         });
 
+        console.log(__dirname);
+        const shPath = path.join(__dirname, '../../..', 'restart-server.sh');
+
         // run restart-server.sh
-        exec('sh ../../../restart-server.sh', (error, stdout, stderr) => {
+        exec(`sh ${shPath}`, (error, stdout, stderr) => {
           if (error) {
             this.log.error(`exec error: ${error}`);
             return;
