@@ -1067,7 +1067,7 @@ export default class ServerCommandHandler extends System {
         });
 
         // run restart-server.sh
-        exec('sh restart-server.sh', (error, stdout, stderr) => {
+        exec('sh ../restart-server.sh', (error, stdout, stderr) => {
           if (error) {
             this.log.error(`exec error: ${error}`);
             return;
