@@ -1038,7 +1038,7 @@ export default class ServerCommandHandler extends System {
       }
 
       // update ab-server .env
-      const envPath = path.join(__dirname, '..', '.env');
+      const envPath = path.resolve(__dirname, '../../..', '.env');
       fs.readFile(envPath, 'utf8', (err, data) => {
         if (err) {
           this.log.error('Error reading .env file: %o', err);
@@ -1066,8 +1066,9 @@ export default class ServerCommandHandler extends System {
           );
         });
 
-        console.log(__dirname);
+        this.log.info(__dirname);
         const shPath = path.resolve(__dirname, '../../..', 'restart-server.sh');
+        this.log.info(shPath);
 
         // run restart-server.sh
         exec(`sh ${shPath}`, (error, stdout, stderr) => {
