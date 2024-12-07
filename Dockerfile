@@ -1,4 +1,4 @@
-FROM node:12-alpine AS updated-node-alpine
+FROM --platform=linux/amd64 node:12-alpine AS updated-node-alpine
 
 RUN apk update && apk upgrade
 
