@@ -542,12 +542,17 @@ export default class WsEndpoint {
       .get(`${this.path}/`, res => {
         const gameModeResponse =
           this.storage.gameModeAPIResponse === '' ? '' : `,${this.storage.gameModeAPIResponse}`;
+          
+        const playersList = JSON.stringify(Array.from(this.storage.playerList.values()).filter((player) => !player.bot.current).map(player => ({
+          id: player.id.current,
+          name: player.name.current,
+        })));
 
         res
           .writeHeader('Access-Control-Allow-Origin', '*')
           .writeHeader('Content-type', 'application/json')
           .end(
-            `{"players":${this.storage.playerList.size},"bots":${this.storage.botIdList.size},"spectators":${this.storage.playerInSpecModeList.size}${gameModeResponse}}`
+            `{"players":${this.storage.playerList.size},"bots":${this.storage.botIdList.size},"spectators":${this.storage.playerInSpecModeList.size},"playersList":${playersList}${gameModeResponse}}`
           );
       })
 
