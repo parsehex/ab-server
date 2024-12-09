@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { exec } from 'child_process';
-import { GameServerConfigInterface } from '../../config';
+import { GameServerConfigInterface, } from '../../config';
 import {
   BYTES_PER_KB,
   CHAT_SUPERUSER_MUTE_TIME_MS,
@@ -1083,6 +1083,22 @@ export default class ServerCommandHandler extends System {
           this.log.error(`stderr: ${stderr}`);
         });
       });
+    }
+    
+    if (pieces[0] === 'discord') {
+      const targetName = pieces[1];
+      if (!targetName) {
+        this.emit(BROADCAST_CHAT_SERVER_WHISPER, playerId, 'Name not specified.');
+        return;
+      }
+      const targetPlayerId = Array.from(this.storage.playerList).find(
+        ([, player]) => player.name.current === targetName
+      )?.[0];
+      this.emit(BROADCAST_CHAT_SERVER_WHISPER, targetPlayerId, this.config.discordLink);
+      this.emit(BROADCAST_CHAT_SERVER_WHISPER, playerId, 'Discord link sent.');
+      this.log.info(`Discord link sent to ${targetName}`);
+
+      return;
     }
 
     if (command === 'debug') {

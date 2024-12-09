@@ -380,6 +380,13 @@ export interface GameServerConfigInterface {
      */
     prefix: string;
   };
+  
+  /**
+   * Discord link.
+   * If not empty, /server discord <player> will send a message with this link.
+   * If empty, the command will be disabled.
+   */
+  discordLink: string;
 }
 
 const appRootDir = resolve(__dirname, '../');
@@ -664,6 +671,8 @@ const config: GameServerConfigInterface = {
     firewallSpeed: intValue(process.env.BTR_FIREWALL_SPEED, BTR_DEFAULT_FIREWALL_SPEED),
     matchWaitTime: intValue(process.env.BTR_MATCH_WAIT_TIME, BTR_DEFAULT_MATCH_WAIT_TIME),
   },
+  
+  discordLink: strValue(process.env.DISCORD_LINK, ''),
 };
 
 config.server.type = config.server.type.toLocaleUpperCase();
