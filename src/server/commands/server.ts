@@ -1085,7 +1085,7 @@ export default class ServerCommandHandler extends System {
       });
     }
     
-    if (pieces[0] === 'discord') {
+    if (pieces[0] === 'discord' && this.config.discordLink) {
       const targetName = pieces[1];
       if (!targetName) {
         this.emit(BROADCAST_CHAT_SERVER_WHISPER, playerId, 'Name not specified.');
