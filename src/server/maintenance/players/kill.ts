@@ -58,7 +58,7 @@ export default class GamePlayersKill extends System {
    * @param projectileId
    * @param victimId
    */
-  onKillPlayer(victimId: PlayerId, projectileId: MobId): void {
+  onKillPlayer(victimId: PlayerId, projectileId: MobId, isPlayer = false): void {
     this.killIndex += 1;
 
     const killTimestamp = this.app.ticker.now + this.killIndex;
@@ -67,10 +67,16 @@ export default class GamePlayersKill extends System {
     let killer: Player = null;
     let isKillerBot = false;
 
-    const projectile =
-      projectileId === 0 ? null : (this.storage.mobList.get(projectileId) as Projectile);
+    let projectile: Projectile = null;
+    let killerId = 0;
 
-    const killerId = projectile === null ? 0 : projectile.owner.current;
+    if (isPlayer) {
+      killerId = projectileId;
+    } else {
+      projectile =
+        projectileId === 0 ? null : (this.storage.mobList.get(projectileId) as Projectile);
+      killerId = projectile === null ? 0 : projectile.owner.current;
+    }
     const killTime = Date.now();
     const aggressors: AggressorsListItem[] = [];
     const assistantsSyncData = [];

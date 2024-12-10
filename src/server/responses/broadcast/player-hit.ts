@@ -17,24 +17,65 @@ export default class PlayerHitBroadcast extends System {
    * Sent on:
    * 1. Projectile hits the player.
    * 2. BTR firewall hits the player.
+   * 3. INF Infected player hits the player.
    *
    * Broadcast to all player who sees the victims.
    * Currently `victimIds` always contains only one victim.
    *
-   * @param projectileId
+   * @param projectileOrPlayerId
    * @param victimIds
    */
-  onPlayerHit(projectileId: MobId, victimIds: PlayerId[]): void {
-    if (projectileId !== 0) {
+  onPlayerHit(projectileOrPlayerId: MobId | PlayerId, victimIds: PlayerId[], isPlayer = false): void {
+    if (isPlayer) {
+      /**
+       * Infected player hit player.
+       */
+      if (victimIds.length === 0) {
+        return;
+      }
+      
+      const player = this.storage.playerList.get(victimIds[0]);
+      
+      if (!player) {
+        return;
+      }
+      
+      const players = [
+        {
+          id: player.id.current,
+          health: player.health.current,
+          healthRegen: SHIPS_SPECS[player.planetype.current].healthRegen,
+        } as ServerPackets.PlayerHitPlayer,
+      ];
+      
+      const recipients = [...this.storage.broadcast.get(player.id.current)];
+      
+      this.emit(
+        CONNECTIONS_SEND_PACKETS,
+        {
+          c: SERVER_PACKETS.PLAYER_HIT,
+          id: projectileOrPlayerId,
+          type: MOB_TYPES.PLAYER,
+          posX: player.position.x,
+          posY: player.position.y,
+          owner: 0,
+          players,
+        } as ServerPackets.PlayerHit,
+        recipients
+      );
+      return;
+    }
+    
+    if (projectileOrPlayerId !== 0) {
       /**
        * Projectile hit
        */
-      if (!this.storage.mobList.has(projectileId) || !this.storage.broadcast.has(projectileId)) {
+      if (!this.storage.mobList.has(projectileOrPlayerId) || !this.storage.broadcast.has(projectileOrPlayerId)) {
         return;
       }
 
-      const projectile = this.storage.mobList.get(projectileId) as Projectile;
-      const recipients = [...this.storage.broadcast.get(projectileId)];
+      const projectile = this.storage.mobList.get(projectileOrPlayerId) as Projectile;
+      const recipients = [...this.storage.broadcast.get(projectileOrPlayerId)];
       const players = [];
 
       for (let playerIndex = 0; playerIndex < victimIds.length; playerIndex += 1) {
@@ -57,7 +98,7 @@ export default class PlayerHitBroadcast extends System {
         CONNECTIONS_SEND_PACKETS,
         {
           c: SERVER_PACKETS.PLAYER_HIT,
-          id: projectileId,
+          id: projectileOrPlayerId,
           type: projectile.mobtype.current,
           posX: projectile.position.x,
           posY: projectile.position.y,
@@ -86,7 +127,7 @@ export default class PlayerHitBroadcast extends System {
         CONNECTIONS_SEND_PACKETS,
         {
           c: SERVER_PACKETS.PLAYER_HIT,
-          id: projectileId,
+          id: projectileOrPlayerId,
           type: MOB_TYPES.FIREWALL,
           posX: player.position.x,
           posY: player.position.y,

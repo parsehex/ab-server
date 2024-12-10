@@ -670,6 +670,8 @@ config.server.type = config.server.type.toLocaleUpperCase();
 
 if (has(GAME_TYPES, config.server.type)) {
   config.server.typeId = GAME_TYPES[config.server.type];
+} else if (config.server.type === 'INF') {
+  config.server.typeId = 4;
 } else {
   config.server.typeId = -1;
 }

@@ -1,3 +1,4 @@
+import { MOB_TYPES } from '@airbattle/protocol';
 import { PLAYERS_HEALTH, PROJECTILES_SPECS, SHIPS_SPECS, UPGRADES_SPECS } from '../../../constants';
 import { BROADCAST_EVENT_STEALTH, BROADCAST_PLAYER_UPDATE, PLAYERS_HIT } from '../../../events';
 import { MobId, PlayerId, Projectile } from '../../../types';
@@ -29,6 +30,7 @@ export default class GamePlayersHit extends System {
 
     const now = Date.now();
     const victim = this.storage.playerList.get(victimId);
+    this.log.debug(`Player ${victimId} hit by ${projectileId}.`);
     let damage: number;
     let aggressorId = 0;
 
@@ -39,19 +41,49 @@ export default class GamePlayersHit extends System {
       this.delay(BROADCAST_EVENT_STEALTH, victim.id.current);
       this.delay(BROADCAST_PLAYER_UPDATE, victim.id.current);
     }
+    
+    const projectile = this.storage.mobList.get(projectileId) as Projectile;
+    const gameType = this.config.server.typeId;
 
     if (projectileId === 0) {
       /**
        * Projectile zero is the BTR firewall
        */
       damage = firewallDamage;
+    }  else if (!projectile.owner && gameType === 4) { // INF
+      const aggressorId = projectileId;
+      const aggressor = this.storage.playerList.get(aggressorId);
+      
+      if (!aggressor) {
+        return;
+      }
+      if (victim.shield.current) {
+        return;
+      }
+      
+      victim.times.lastHit = now;
+      victim.damage.hitsReceived += 1;
+      damage = PROJECTILES_SPECS[MOB_TYPES.COPTER_MISSILE].damage;
+      
+      // apply damage
+      const fullAirplaneHealth =
+        (1 / SHIPS_SPECS[victim.planetype.current].damageFactor) *
+        UPGRADES_SPECS.DEFENSE.factor[victim.upgrades.defense];
+      victim.health.current = fullAirplaneHealth * victim.health.current - damage;
+      victim.health.current /= fullAirplaneHealth;
+      
+      if (victim.health.current <= PLAYERS_HEALTH.MIN) {
+        victim.health.current = PLAYERS_HEALTH.MIN;
+      }
+      
+      // this.log.debug(`Player ${victimId} hit by ${aggressorId} doing ${damage} damage.`);
+      
+      return;
     } else {
       if (victim.shield.current) {
         return;
       }
-
-      const projectile = this.storage.mobList.get(projectileId) as Projectile;
-
+      
       aggressorId = projectile.owner.current;
       victim.times.lastHit = now;
       victim.damage.hitsReceived += 1;

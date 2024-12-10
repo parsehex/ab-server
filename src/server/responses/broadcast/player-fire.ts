@@ -27,6 +27,12 @@ export default class PlayerFireBroadcast extends System {
     const broadcast = [...this.storage.broadcast.get(playerId)];
     const projectiles = [];
     let recipients: ConnectionId[];
+    
+    const gameType = this.config.server.typeId;
+    const playerTeam = player.team.current;
+    if (gameType === 4 && playerTeam === 1) {
+      return;
+    }
 
     for (let index = 0; index < projectileIds.length; index += 1) {
       if (this.storage.mobList.has(projectileIds[index])) {

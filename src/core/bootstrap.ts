@@ -52,6 +52,7 @@ import Logger from '../logger';
 import metrics, { Metrics } from '../logger/metrics';
 import BTRGameManifest from '../modes/btr/manifest';
 import CTFGameManifest from '../modes/ctf/manifest';
+import InfGameManifest from '../modes/inf/manifest';
 import FFAGameManifest from '../modes/ffa/manifest';
 import { Channels } from '../server/channels';
 import Helpers from '../server/helpers';
@@ -181,6 +182,8 @@ export default class GameServerBootstrap implements GameServerBootstrapInterface
       this.gameMode = new CTFGameManifest({ app: this });
     } else if (this.config.server.typeId === GAME_TYPES.BTR) {
       this.gameMode = new BTRGameManifest({ app: this });
+    } else if (this.config.server.type.toLowerCase() === 'inf') {
+      this.gameMode = new InfGameManifest({ app: this });
     } else {
       this.log.fatal(`Unsupported game type ${this.config.server.type}!`);
 

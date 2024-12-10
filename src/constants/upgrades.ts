@@ -9,6 +9,7 @@ export const UPGRADES_MIN_VICTIM_SCORE_TO_DROP = {
   [GAME_TYPES.FFA]: 26,
   [GAME_TYPES.CTF]: 26,
   [GAME_TYPES.BTR]: 0,
+  4: 0,
 };
 
 export const UPGRADES_TYPES = {
@@ -62,6 +63,10 @@ export const UPGRADES_DEFAULT_DROP_CHANCE = {
     max: 0.5,
   },
   [GAME_TYPES.BTR]: {
+    min: 1.0,
+    max: 1.0,
+  },
+  4: {
     min: 1.0,
     max: 1.0,
   },

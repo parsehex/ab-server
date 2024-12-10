@@ -636,7 +636,7 @@ export default class GamePlayersUpdate extends System {
         /**
          * Fire projectiles.
          */
-        if (player.planestate.fire) {
+        if (player.planestate.fire && this.config.server.typeId !== 4) {
           const fireMode = player.inferno.current
             ? SHIPS_FIRE_MODES.INFERNO
             : SHIPS_FIRE_MODES.FIRE;
