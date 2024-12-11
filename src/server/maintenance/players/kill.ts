@@ -70,8 +70,9 @@ export default class GamePlayersKill extends System {
     let projectile: Projectile = null;
     let killerId = 0;
 
-    if (isPlayer) {
+    if (isPlayer) { // INF mode
       killerId = projectileId;
+      projectile = { inferno: { current: false }, owner: { current: projectileId } } as Projectile;
     } else {
       projectile =
         projectileId === 0 ? null : (this.storage.mobList.get(projectileId) as Projectile);

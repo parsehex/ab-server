@@ -15,6 +15,7 @@ import {
   BROADCAST_MOB_UPDATE,
   BROADCAST_MOB_UPDATE_STATIONARY,
   BROADCAST_PLAYER_HIT,
+  BROADCAST_PLAYER_KILL,
   BROADCAST_PLAYER_UPDATE,
   COLLISIONS_ADD_OBJECT,
   COLLISIONS_DETECT,
@@ -87,7 +88,7 @@ export default class GameCollisions extends System {
 
   onAddToCollisionDetector(body: Body): void {
     const isPlayer = body.type === COLLISIONS_OBJECT_TYPES.PLAYER;
-    const isInfMode = this.config.server.typeId === 4;
+    const isInfMode = this.config.server.typeId === 4 && isPlayer && body.team === 2;
     if (isPlayer && isInfMode) {
       body.isCollideWithPlayer = true;
     }
@@ -288,7 +289,7 @@ export default class GameCollisions extends System {
         /**
          * Handle player collisions.
          */
-        const collisions = player.hitbox.current.potentials();
+        const collisions = player.team.current === 2 ? player.hitbox.current.potentials() : player.hitbox.current.playerPotentials();
 
         for (let ci = 0; ci < collisions.length; ci += 1) {
           const id = collisions[ci].id; // eslint-disable-line prefer-destructuring
@@ -329,28 +330,24 @@ export default class GameCollisions extends System {
             }
 
             /**
-             * Infected players.
+             * Infected game mode - player-on-player collision.
              */
             const gameType = this.config.server.typeId;
+            const isInfected = gameType === 4 && player.team.current === 2;
             if (gameType === 4 && type === COLLISIONS_OBJECT_TYPES.PLAYER) {
               const enemy = this.storage.playerList.get(id);
 
-              if (enemy.alivestatus.current === PLAYERS_ALIVE_STATUSES.ALIVE && player.team.current === 1) {
+              if (isInfected && enemy.alivestatus.current === PLAYERS_ALIVE_STATUSES.ALIVE) {
                 const enemyHitbox = enemy.hitbox.current;
                 const playerHitbox = player.hitbox.current;
                 this.emit(PLAYERS_HIT, enemy.id.current, id);
                 this.delay(BROADCAST_PLAYER_HIT, id, [enemy.id.current], true);
-                if (player.health.current === PLAYERS_HEALTH.MIN) {
-                  // Player is dead
-                  this.emit(PLAYERS_KILL, enemy.id.current, id, true);
-                  break;
-                }
+
                 // bounce player and enemy
                 this.emit(PLAYERS_BOUNCE, player.id.current, enemyHitbox.x, enemyHitbox.y, 0.5);
                 this.delay(BROADCAST_EVENT_BOUNCE, player.id.current);
                 this.emit(PLAYERS_BOUNCE, enemy.id.current, playerHitbox.x, playerHitbox.y, 0.5);
                 this.delay(BROADCAST_EVENT_BOUNCE, enemy.id.current);
-
               }
             }
 
@@ -359,7 +356,7 @@ export default class GameCollisions extends System {
              */
             if (collisions[ci].isBox && !inactiveBoxes.has(id) &&
               // Infected Mode: team2 can't pick up inferno powerups
-              !(this.config.server.typeId === 4 && type === COLLISIONS_OBJECT_TYPES.INFERNO &&player.team.current === 1)) {
+              !(type === COLLISIONS_OBJECT_TYPES.INFERNO && isInfected)) {
               if (type === COLLISIONS_OBJECT_TYPES.UPGRADE) {
                 const box = this.storage.mobList.get(id) as Powerup;
 

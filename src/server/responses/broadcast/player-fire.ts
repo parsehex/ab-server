@@ -27,10 +27,10 @@ export default class PlayerFireBroadcast extends System {
     const broadcast = [...this.storage.broadcast.get(playerId)];
     const projectiles = [];
     let recipients: ConnectionId[];
-    
-    const gameType = this.config.server.typeId;
-    const playerTeam = player.team.current;
-    if (gameType === 4 && playerTeam === 1) {
+
+    // Infected player can't fire.
+    const isInfected = this.config.server.typeId === 4 && player.team.current === 2;
+    if (isInfected) {
       return;
     }
 

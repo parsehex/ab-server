@@ -400,7 +400,7 @@ export default class GamePlayersUpdate extends System {
         }
 
         /**
-         * Enegry update.
+         * Energy update.
          */
         if (player.energy.current !== PLAYERS_ENERGY.MAX || energyDiff < 0) {
           player.energy.current += energyDiff;
@@ -636,7 +636,7 @@ export default class GamePlayersUpdate extends System {
         /**
          * Fire projectiles.
          */
-        if (player.planestate.fire && this.config.server.typeId !== 4) {
+        if (player.planestate.fire && !(this.config.server.typeId === 4 && player.team.current === 2)) {
           const fireMode = player.inferno.current
             ? SHIPS_FIRE_MODES.INFERNO
             : SHIPS_FIRE_MODES.FIRE;
