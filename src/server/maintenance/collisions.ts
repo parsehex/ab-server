@@ -329,7 +329,7 @@ export default class GameCollisions extends System {
             }
 
             /**
-             * Players.
+             * Infected players.
              */
             const gameType = this.config.server.typeId;
             if (gameType === 4 && type === COLLISIONS_OBJECT_TYPES.PLAYER) {
@@ -338,11 +338,11 @@ export default class GameCollisions extends System {
               if (enemy.alivestatus.current === PLAYERS_ALIVE_STATUSES.ALIVE && player.team.current === 1) {
                 const enemyHitbox = enemy.hitbox.current;
                 const playerHitbox = player.hitbox.current;
-                this.emit(PLAYERS_HIT, player.id.current, id);
-                this.delay(BROADCAST_PLAYER_HIT, id, [player.id.current], true);
+                this.emit(PLAYERS_HIT, enemy.id.current, id);
+                this.delay(BROADCAST_PLAYER_HIT, id, [enemy.id.current], true);
                 if (player.health.current === PLAYERS_HEALTH.MIN) {
                   // Player is dead
-                  this.emit(PLAYERS_KILL, player.id.current, id, true);
+                  this.emit(PLAYERS_KILL, enemy.id.current, id, true);
                   break;
                 }
                 // bounce player and enemy
