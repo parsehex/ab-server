@@ -49,7 +49,7 @@ export default class GamePlayersHit extends System {
        * Projectile zero is the BTR firewall
        */
       damage = firewallDamage;
-    }  else if (!projectile.owner && gameType === 4) { // INF
+    }  else if (!projectile.owner && gameType === 4) { // INF player hit player
       const aggressorId = projectileId;
       const aggressor = this.storage.playerList.get(aggressorId);
 
@@ -75,8 +75,8 @@ export default class GamePlayersHit extends System {
         victim.health.current = PLAYERS_HEALTH.MIN;
 
         // player is dead
-        this.emit(PLAYERS_KILL, aggressorId, victimId, true);
-        this.emit(BROADCAST_PLAYER_KILL, aggressorId, victimId);
+        this.emit(PLAYERS_KILL, victimId, aggressorId, true);
+        this.delay(BROADCAST_PLAYER_KILL, victimId, aggressorId, victim.position.x, victim.position.y);
       }
 
       return;

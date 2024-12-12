@@ -59,6 +59,7 @@ export default class GamePlayersKill extends System {
    * @param victimId
    */
   onKillPlayer(victimId: PlayerId, projectileId: MobId, isPlayer = false): void {
+    this.log.debug(`Player ${victimId} killed by ${projectileId}`);
     this.killIndex += 1;
 
     const killTimestamp = this.app.ticker.now + this.killIndex;
@@ -175,7 +176,7 @@ export default class GamePlayersKill extends System {
     /**
      * Update killer stats.
      */
-    if (projectileId !== 0 && this.storage.playerList.has(killerId)) {
+    if ((projectileId !== 0 || isPlayer) && this.storage.playerList.has(killerId)) {
       let earnedScore = 0;
 
       /**
@@ -486,8 +487,12 @@ export default class GamePlayersKill extends System {
       this.delay(RESPONSE_PLAYER_UPGRADE, victimId, UPGRADES_ACTION_TYPE.LOST);
     }
 
+    this.log.debug(`Player ${victimId} killed by ${killerId} 9`);
     this.delay(BROADCAST_PLAYER_KILL, victimId, killerId, victim.position.x, victim.position.y);
     this.delay(PLAYERS_KILLED, victimId, killerId, projectileId);
     this.delay(PLAYERS_ALIVE_UPDATE);
+
+    this.delay(RESPONSE_SCORE_UPDATE, killerId);
+    this.delay(RESPONSE_SCORE_UPDATE, victimId);
   }
 }

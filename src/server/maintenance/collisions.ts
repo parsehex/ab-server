@@ -336,12 +336,19 @@ export default class GameCollisions extends System {
             const isInfected = gameType === 4 && player.team.current === 2;
             if (gameType === 4 && type === COLLISIONS_OBJECT_TYPES.PLAYER) {
               const enemy = this.storage.playerList.get(id);
+              const isEnemyInfected = enemy.team.current === 2;
 
-              if (isInfected && enemy.alivestatus.current === PLAYERS_ALIVE_STATUSES.ALIVE) {
+              if (isInfected && !isEnemyInfected && enemy.alivestatus.current === PLAYERS_ALIVE_STATUSES.ALIVE) {
                 const enemyHitbox = enemy.hitbox.current;
                 const playerHitbox = player.hitbox.current;
-                this.emit(PLAYERS_HIT, enemy.id.current, id);
-                this.delay(BROADCAST_PLAYER_HIT, id, [enemy.id.current], true);
+                // TODO more dmg if enemy boosting
+                this.emit(PLAYERS_HIT, enemy.id.current, player.id.current);
+                this.delay(BROADCAST_PLAYER_HIT, player.id.current, [enemy.id.current], true);
+
+                if (!player.delayed.RESPONSE_SCORE_UPDATE) {
+                  player.delayed.RESPONSE_SCORE_UPDATE = true;
+                  this.delay(RESPONSE_SCORE_UPDATE, player.id.current);
+                }
 
                 // bounce player and enemy
                 this.emit(PLAYERS_BOUNCE, player.id.current, enemyHitbox.x, enemyHitbox.y, 0.5);
