@@ -9,25 +9,16 @@ import {
   BROADCAST_CHAT_SERVER_PUBLIC,
   BROADCAST_CHAT_SERVER_WHISPER,
   BROADCAST_GAME_FLAG,
-  BROADCAST_PLAYER_UPDATE,
-  BROADCAST_SERVER_CUSTOM,
   BROADCAST_SERVER_MESSAGE,
-  COLLISIONS_ADD_OBJECT,
-  CTF_RESET_FLAGS,
   CTF_SHUFFLE_PLAYERS,
-  CTF_TEAM_CAPTURED_FLAG,
   PLAYERS_CREATED,
   PLAYERS_RESPAWN,
-  RESPONSE_SCORE_UPDATE,
-  SYNC_ENQUEUE_UPDATE,
   TIMELINE_CLOCK_SECOND,
   TIMELINE_GAME_MATCH_END,
   TIMELINE_GAME_MATCH_START,
 } from '../../../events';
 import { SCOREBOARD_FORCE_UPDATE } from '../../../events/scoreboard';
 import { System } from '../../../server/system';
-import { msToHumanReadable } from '../../../support/datetime';
-import { has } from '../../../support/objects';
 import { Player, PlayerId, TeamId } from '../../../types';
 
 export default class GameMatches extends System {
@@ -37,7 +28,6 @@ export default class GameMatches extends System {
     super({ app });
 
     this.listeners = {
-      [CTF_TEAM_CAPTURED_FLAG]: this.onTeamCaptured,
       [PLAYERS_CREATED]: this.announceMatchState,
       [TIMELINE_CLOCK_SECOND]: this.onSecondTick,
     };
@@ -95,6 +85,7 @@ export default class GameMatches extends System {
           5 * MS_PER_SEC
         );
 
+        // Match start.
         this.storage.gameEntity.match.current += 1;
         this.storage.gameEntity.match.isActive = true;
         this.storage.gameEntity.match.start = Date.now();
@@ -132,123 +123,10 @@ export default class GameMatches extends System {
    * @param playerId
    */
   announceMatchState(playerId: PlayerId): void {
-    this.log.info(`Player ${playerId} connected, announcing match state.`);
     setTimeout(() => {
-      this.emit(BROADCAST_CHAT_SERVER_WHISPER, playerId, "welcome to infection mode");
+      this.emit(BROADCAST_CHAT_SERVER_WHISPER, playerId, "Welcome to Infection Mode. This mode is still in development.");
       const player = this.storage.playerList.get(playerId);
-      // this.emit(COLLISIONS_ADD_OBJECT, player.id.current, player.hitbox.current);
       this.storage.mobList.set(playerId, player);
     }, CTF_FLAGS_STATE_TO_NEW_PLAYER_BROADCAST_DELAY_MS);
-  }
-
-  /**
-   * A team successfully captured the flag. Check for the end of the game.
-   *
-   * @param winnerTeamId
-   */
-  onTeamCaptured(winnerTeamId: TeamId): void {
-    if (winnerTeamId === CTF_TEAMS.BLUE) {
-      this.storage.gameEntity.match.blue += 1;
-    } else {
-      this.storage.gameEntity.match.red += 1;
-    }
-
-    if (this.storage.gameEntity.match.blue >= 3 || this.storage.gameEntity.match.red >= 3) {
-      this.emit(CTF_RESET_FLAGS);
-
-      this.storage.gameEntity.match.winnerTeam = winnerTeamId;
-      this.storage.gameEntity.match.isActive = false;
-      this.storage.gameEntity.match.bounty =
-        CTF_WIN_BOUNTY.BASE + CTF_WIN_BOUNTY.INCREMENT * (this.storage.playerList.size - 1);
-
-      if (this.storage.gameEntity.match.bounty > CTF_WIN_BOUNTY.MAX) {
-        this.storage.gameEntity.match.bounty = CTF_WIN_BOUNTY.MAX;
-      }
-
-      const now = Date.now();
-      const matchDuration = now - this.storage.gameEntity.match.start;
-
-      const playersIterator = this.storage.playerList.values();
-      let player: Player = playersIterator.next().value;
-
-      while (player !== undefined) {
-        if (player.planestate.flagspeed) {
-          player.planestate.flagspeed = false;
-          this.emit(BROADCAST_PLAYER_UPDATE, player.id.current);
-        }
-
-        // measure share in match in steps of 0.1, based on how long this player
-        // was active on the winning side of the match during the game.
-        const timeActiveOnWinningTeam =
-          winnerTeamId === CTF_TEAMS.BLUE
-            ? player.times.activePlayingBlue
-            : player.times.activePlayingRed;
-
-        const shareInMatch = Math.round((timeActiveOnWinningTeam * 10) / matchDuration) / 10;
-        const shareInScore = Math.round(this.storage.gameEntity.match.bounty * shareInMatch);
-
-        if (shareInScore > 0) {
-          player.score.current += shareInScore;
-
-          if (has(player, 'user')) {
-            const user = this.storage.users.list.get(player.user.id);
-
-            user.lifetimestats.earnings += shareInScore;
-            this.storage.users.hasChanges = true;
-
-            if (this.config.sync.enabled) {
-              const eventDetail = {
-                match: { start: this.storage.gameEntity.match.start },
-                player: {
-                  active: {
-                    red: player.times.activePlayingRed,
-                    blue: player.times.activePlayingBlue,
-                  },
-                  plane: player.planetype.current,
-                  team: player.team.current,
-                  flag: player.flag.current,
-                },
-              };
-
-              this.emit(
-                SYNC_ENQUEUE_UPDATE,
-                'user',
-                player.user.id,
-                { earnings: shareInScore },
-                now,
-                ['ctf-match-winner', eventDetail]
-              );
-            }
-          }
-
-          this.emit(RESPONSE_SCORE_UPDATE, player.id.current);
-        }
-
-        if (player.team.current === winnerTeamId) {
-          player.wins.current += 1;
-
-          this.emit(BROADCAST_SERVER_CUSTOM, player.id.current, shareInScore);
-        } else {
-          this.emit(BROADCAST_SERVER_CUSTOM, player.id.current, 0);
-        }
-
-        player.stats.matchesTotal += 1;
-
-        if (player.times.activePlayingBlue !== 0 || player.times.activePlayingRed !== 0) {
-          player.stats.matchesActivePlayed += 1;
-        }
-
-        player = playersIterator.next().value;
-      }
-
-      this.emit(BROADCAST_CHAT_SERVER_PUBLIC, `Game time: ${msToHumanReadable(matchDuration)}.`);
-
-      this.emit(
-        BROADCAST_CHAT_SERVER_PUBLIC,
-        'Switch to spectate mode if you are not going to play the next game or be on the map till reshuffle if you are.'
-      );
-
-      this.emit(TIMELINE_GAME_MATCH_END);
-    }
   }
 }
