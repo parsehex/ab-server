@@ -1,5 +1,5 @@
 import { CTF_TEAMS } from '@airbattle/protocol';
-import { CTF_PLAYERS_EXTRA_SPAWN_ZONES, CTF_PLAYERS_SPAWN_ZONES, FFA_DEFAULT_SPAWN_ZONE } from '../../../constants';
+import { INF_PLAYERS_SPAWN_ZONES } from '../../../constants';
 import {
   BROADCAST_CHAT_SERVER_PUBLIC,
   BROADCAST_PLAYER_RETEAM,
@@ -55,27 +55,19 @@ export default class GamePlayers extends System {
       redTeam = this.storage.connectionIdByTeam.get(CTF_TEAMS.RED).size;
     }
 
-    // player.team.current = CTF_TEAMS.BLUE;
-
-    if (blueTeam > redTeam) {
-      player.team.current = CTF_TEAMS.RED;
-    } else if (blueTeam < redTeam) {
-      player.team.current = CTF_TEAMS.BLUE;
-    } else {
-      player.team.current = getRandomInt(0, 1) === 0 ? CTF_TEAMS.BLUE : CTF_TEAMS.RED;
+    if (player.bot.current) {
+      const redRatio = redTeam / (redTeam + blueTeam);
+      // if red team has less than 1/3 of total players, assign to red
+      // otherwise assign to blue
+      player.team.current = redRatio < 0.33 ? CTF_TEAMS.RED : CTF_TEAMS.BLUE;
     }
+
+    player.team.current = blueTeam > redTeam ? CTF_TEAMS.RED : CTF_TEAMS.BLUE;
+
+    this.log.debug(`Player ${player.id.current} assigned to team ${player.team.current}`);
   }
 
   onAssignPlayerSpawnPosition(player: Player): void {
-    const isInfMode = this.config.server.typeId === 4; // unnecessary
-
-    if (isInfMode) {
-      // In INF mode, players spawn near the center of the map.
-      player.position.x = getRandomInt(-1024, 1024);
-      player.position.y = getRandomInt(-1024, 1024);``
-      return;
-    }
-
     const isBlue = player.team.current === CTF_TEAMS.BLUE;
     let x = 0;
     let y = 0;
@@ -87,25 +79,9 @@ export default class GamePlayers extends System {
       !this.config.ctf.extraSpawns
     ) {
       if (isBlue) {
-        [x, y, r] = CTF_PLAYERS_SPAWN_ZONES[CTF_TEAMS.BLUE];
+        [x, y, r] = INF_PLAYERS_SPAWN_ZONES[CTF_TEAMS.BLUE];
       } else {
-        [x, y, r] = CTF_PLAYERS_SPAWN_ZONES[CTF_TEAMS.RED];
-      }
-    } else if (player.alivestatus.isLastStateKilled) {
-      if (isBlue) {
-        if (player.position.x < 0) {
-          [x, y, r] = CTF_PLAYERS_SPAWN_ZONES[CTF_TEAMS.BLUE];
-        } else if (player.position.y < 0) {
-          [x, y, r] = CTF_PLAYERS_EXTRA_SPAWN_ZONES[CTF_TEAMS.BLUE].SOUTH;
-        } else {
-          [x, y, r] = CTF_PLAYERS_EXTRA_SPAWN_ZONES[CTF_TEAMS.BLUE].NORTH;
-        }
-      } else if (player.position.x > -1024) {
-        [x, y, r] = CTF_PLAYERS_SPAWN_ZONES[CTF_TEAMS.RED];
-      } else if (player.position.y < -512) {
-        [x, y, r] = CTF_PLAYERS_EXTRA_SPAWN_ZONES[CTF_TEAMS.RED].SOUTH;
-      } else {
-        [x, y, r] = CTF_PLAYERS_EXTRA_SPAWN_ZONES[CTF_TEAMS.RED].NORTH;
+        [x, y, r] = INF_PLAYERS_SPAWN_ZONES[CTF_TEAMS.RED];
       }
     }
 

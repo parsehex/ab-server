@@ -14,6 +14,8 @@ export * from './ctf';
 
 export * from './ffa';
 
+export * from './inf';
+
 export * from './limits';
 
 export * from './logs';
