@@ -419,9 +419,12 @@ export default class GamePlayersUpdate extends System {
         /**
          * Health update.
          */
-        if (player.health.current !== PLAYERS_HEALTH.MAX) {
+        const isSurvivor = this.config.server.typeId === 4 && player.team.current === 1;
+        if (player.health.current !== PLAYERS_HEALTH.MAX && !isSurvivor) {
           player.health.regen = SHIP_SPECS.healthRegen;
           player.health.current += compensationFactor * SHIP_SPECS.healthRegen;
+        } else if (isSurvivor) {
+          player.health.regen = 0;
         }
 
         if (player.health.current > PLAYERS_HEALTH.MAX) {
