@@ -345,16 +345,24 @@ export default class GameCollisions extends System {
                 this.emit(PLAYERS_HIT, enemy.id.current, player.id.current);
                 this.delay(BROADCAST_PLAYER_HIT, player.id.current, [enemy.id.current], true);
 
-                if (!player.delayed.RESPONSE_SCORE_UPDATE) {
-                  player.delayed.RESPONSE_SCORE_UPDATE = true;
-                  this.delay(RESPONSE_SCORE_UPDATE, player.id.current);
-                }
-
                 // bounce player and enemy
                 this.emit(PLAYERS_BOUNCE, player.id.current, enemyHitbox.x, enemyHitbox.y, 0.5);
                 this.delay(BROADCAST_EVENT_BOUNCE, player.id.current);
                 this.emit(PLAYERS_BOUNCE, enemy.id.current, playerHitbox.x, playerHitbox.y, 0.5);
                 this.delay(BROADCAST_EVENT_BOUNCE, enemy.id.current);
+
+                if (player.health.current === PLAYERS_HEALTH.MIN) {
+                  this.emit(PLAYERS_KILL, player.id.current, enemy.id.current);
+
+                  if (!enemy.delayed.RESPONSE_SCORE_UPDATE) {
+                    enemy.delayed.RESPONSE_SCORE_UPDATE = true;
+                    this.delay(RESPONSE_SCORE_UPDATE, enemy.id.current);
+                  }
+                  if (!player.delayed.RESPONSE_SCORE_UPDATE) {
+                    player.delayed.RESPONSE_SCORE_UPDATE = true;
+                    this.delay(RESPONSE_SCORE_UPDATE, player.id.current);
+                  }
+                }
               }
             }
 

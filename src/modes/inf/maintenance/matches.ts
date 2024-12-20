@@ -12,6 +12,7 @@ import {
   BROADCAST_SERVER_MESSAGE,
   CTF_SHUFFLE_PLAYERS,
   PLAYERS_CREATED,
+  PLAYERS_KILL,
   PLAYERS_RESPAWN,
   TIMELINE_CLOCK_SECOND,
   TIMELINE_GAME_MATCH_END,
@@ -30,7 +31,32 @@ export default class GameMatches extends System {
     this.listeners = {
       [PLAYERS_CREATED]: this.announceMatchState,
       [TIMELINE_CLOCK_SECOND]: this.onSecondTick,
+      [PLAYERS_KILL]: this.onPlayerKill,
     };
+  }
+
+  /**
+   * Handle player kill event.
+   *
+   * @param playerId
+   */
+  onPlayerKill(playerId: PlayerId): void {
+    const players = Array.from(this.storage.playerList.values());
+
+    const survivorsAlive = players.filter(player => player.team.current === CTF_TEAMS.BLUE && player.alivestatus?.current === 0).length;
+    const infectedAlive = players.filter(player => player.team.current === CTF_TEAMS.RED && player.alivestatus.current === 0).length;
+
+    this.log.debug(`Survivors alive: ${survivorsAlive}, Infected alive: ${infectedAlive}`);
+
+    // if either team has no players alive, end the match with the other team winning
+    if (survivorsAlive === 0 || infectedAlive === 0) {
+      this.emit(
+        BROADCAST_SERVER_MESSAGE,
+        `Team ${infectedAlive > 0 ? 'Infected' : 'Survivors'} wins!`,
+        SERVER_MESSAGE_TYPES.INFO,
+        3 * MS_PER_SEC
+      );
+    }
   }
 
   onSecondTick(): void {

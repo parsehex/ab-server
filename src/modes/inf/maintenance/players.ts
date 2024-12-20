@@ -29,6 +29,11 @@ export default class GamePlayers extends System {
       [PLAYERS_ASSIGN_SPAWN_POSITION]: this.onAssignPlayerSpawnPosition,
       [CTF_SHUFFLE_PLAYERS]: this.onShufflePlayers,
     };
+
+    const isDev = process.env.NODE_ENV === 'development';
+    if (isDev) {
+      INF_PLAYERS_SPAWN_ZONES[CTF_TEAMS.RED] = [-8580, -1750, 100];
+    }
   }
 
   initTeams(): void {

@@ -187,6 +187,7 @@ export default class GameChat extends System {
       );
 
       this.emit(BROADCAST_CHAT_SERVER_WHISPER, playerId, msg);
+      // TODO add delay between messages
     }
   }
 }
