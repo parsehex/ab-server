@@ -28,12 +28,6 @@ export default class PlayerFireBroadcast extends System {
     const projectiles = [];
     let recipients: ConnectionId[];
 
-    // Infected player can't fire.
-    const isInfected = this.config.server.typeId === 4 && player.team.current === 2;
-    if (isInfected) {
-      return;
-    }
-
     for (let index = 0; index < projectileIds.length; index += 1) {
       if (this.storage.mobList.has(projectileIds[index])) {
         const projectile = this.storage.mobList.get(projectileIds[index]) as Projectile;

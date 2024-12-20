@@ -295,7 +295,7 @@ export default class GameCollisions extends System {
           const id = collisions[ci].id; // eslint-disable-line prefer-destructuring
           const type = collisions[ci].type; // eslint-disable-line prefer-destructuring
 
-          if (this.isPlayerCollide(player, id)) {
+          if (this.isPlayerCollide(player, id) && id !== player.id.current) {
             /**
              * CTF flag capture zones.
              */
@@ -395,10 +395,13 @@ export default class GameCollisions extends System {
               }
             }
 
+            const projectile = projectiles.has(id) ? (this.storage.mobList.get(id) as Projectile) : null;
+            const projectileOwner = projectile ? projectile.owner.current : null;
+            const projectileTeam = projectile ? projectile.team.current : null;
             /**
              * Projectiles.
              */
-            if (collisions[ci].isProjectile && projectiles.has(id)) {
+            if (collisions[ci] && projectiles.has(id) && projectileOwner !== player.id.current && projectileTeam !== player.team.current) {
               if (player.health.current === PLAYERS_HEALTH.MIN) {
                 break;
               }

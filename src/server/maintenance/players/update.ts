@@ -316,7 +316,7 @@ export default class GamePlayersUpdate extends System {
           player.delayed.BROADCAST_PLAYER_UPDATE = true;
         }
 
-        const SHIP_SPECS = SHIPS_SPECS[player.planetype.current];
+        let SHIP_SPECS = SHIPS_SPECS[player.planetype.current];
         let boostFactor = player.planestate.boost ? SHIP_SPECS.boostFactor : 1;
 
         player.energy.regen =
@@ -639,7 +639,7 @@ export default class GamePlayersUpdate extends System {
         /**
          * Fire projectiles.
          */
-        if (player.planestate.fire && !(this.config.server.typeId === 4 && player.team.current === 2)) {
+        if (player.planestate.fire) {
           const fireMode = player.inferno.current
             ? SHIPS_FIRE_MODES.INFERNO
             : SHIPS_FIRE_MODES.FIRE;
@@ -663,6 +663,12 @@ export default class GamePlayersUpdate extends System {
               player.times.lastStealth = this.now;
               player.delayed.BROADCAST_EVENT_STEALTH = true;
               this.delay(BROADCAST_PLAYER_UPDATE, player.id.current);
+            }
+
+            const isInfectedMode = this.config.server.typeId === 4;
+            const isInfected = isInfectedMode && player.team.current === 2;
+            if (isInfected) {
+              SHIP_SPECS = SHIPS_SPECS[SHIPS_TYPES.COPTER];
             }
 
             const FIRE_TEMPLATE = SHIP_SPECS[fireMode][fireType];
