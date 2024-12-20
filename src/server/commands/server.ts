@@ -1,4 +1,7 @@
-import { GameServerConfigInterface } from '../../config';
+import * as fs from 'fs';
+import * as path from 'path';
+import { exec } from 'child_process';
+import { GameServerConfigInterface, } from '../../config';
 import {
   BYTES_PER_KB,
   CHAT_SUPERUSER_MUTE_TIME_MS,
@@ -1016,6 +1019,84 @@ export default class ServerCommandHandler extends System {
 
     if (command === 'sync') {
       this.responseServerSync(playerId);
+
+      return;
+    }
+
+    const pieces = command.split(' ');
+    if (pieces[0] === 'mode') {
+      const mode = pieces[1].toLowerCase();
+      if (!mode) {
+        this.emit(BROADCAST_CHAT_SERVER_WHISPER, playerId, 'Mode not specified.');
+        return;
+      }
+
+      const modes = ['ffa', 'ctf', 'btr'];
+      if (!modes.includes(mode)) {
+        this.emit(BROADCAST_CHAT_SERVER_WHISPER, playerId, 'Invalid mode. Available modes: ');
+        return;
+      }
+
+      // update ab-server .env
+      const envPath = path.resolve(__dirname, '../../..', '.env');
+      fs.readFile(envPath, 'utf8', (err, data) => {
+        if (err) {
+          this.log.error('Error reading .env file: %o', err);
+          return;
+        }
+
+        const lines = data.split('\n');
+        const newLines = lines.map(line => {
+          if (line.startsWith('SERVER_TYPE=')) {
+            return `SERVER_TYPE="${mode.toUpperCase()}"`;
+          }
+          if (line.startsWith('SERVER_ROOM=')) {
+            return `SERVER_room="ab-${mode}"`;
+          }
+          return line;
+        });
+
+        fs.writeFile(envPath, newLines.join('\n'), 'utf8', err => {
+          if (err) {
+            this.log.error('Error writing .env file: %o', err);
+            return;
+          }
+
+          this.emit(
+            BROADCAST_CHAT_SERVER_WHISPER,
+            playerId,
+            `Mode set to ${mode.toUpperCase()}. Restarting server...`
+          );
+        });
+
+        // TODO update ab-frontend games list
+
+        const shPath = path.resolve(__dirname, '../../..', 'restart-server.sh');
+
+        // run restart-server.sh
+        exec(`/usr/bin/sh ${shPath}`, (error, stdout, stderr) => {
+          if (error) {
+            this.log.error(`exec error: ${error}`);
+            return;
+          }
+          this.log.info(`stdout: ${stdout}`);
+          this.log.error(`stderr: ${stderr}`);
+        });
+      });
+    }
+    
+    if (pieces[0] === 'discord' && this.config.discordLink) {
+      const targetName = pieces[1];
+      if (!targetName) {
+        this.emit(BROADCAST_CHAT_SERVER_WHISPER, playerId, 'Name not specified.');
+        return;
+      }
+      const targetPlayerId = Array.from(this.storage.playerList).find(
+        ([, player]) => player.name.current === targetName
+      )?.[0];
+      this.emit(BROADCAST_CHAT_SERVER_WHISPER, targetPlayerId, this.config.discordLink);
+      this.emit(BROADCAST_CHAT_SERVER_WHISPER, playerId, 'Discord link sent.');
+      this.log.info(`Discord link sent to ${targetName}`);
 
       return;
     }

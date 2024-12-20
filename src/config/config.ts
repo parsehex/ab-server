@@ -380,6 +380,13 @@ export interface GameServerConfigInterface {
      */
     prefix: string;
   };
+  
+  /**
+   * Discord link.
+   * If not empty, /server discord <player> will send a message with this link.
+   * If empty, the command will be disabled.
+   */
+  discordLink: string;
 }
 
 const appRootDir = resolve(__dirname, '../');
@@ -433,7 +440,11 @@ const floatValue = (value: string | undefined, def: number): number => {
  * @param def default value
  */
 const strValue = (value: string | undefined, def = ''): string => {
-  return value || def;
+  if (value) {
+    // Remove surrounding quotes if present
+    return value.replace(/^['"]|['"]$/g, '');
+  }
+  return def;
 };
 
 const parseBotsIP = (value: string | undefined, def: IPv4[]): IPv4[] => {
@@ -664,6 +675,8 @@ const config: GameServerConfigInterface = {
     firewallSpeed: intValue(process.env.BTR_FIREWALL_SPEED, BTR_DEFAULT_FIREWALL_SPEED),
     matchWaitTime: intValue(process.env.BTR_MATCH_WAIT_TIME, BTR_DEFAULT_MATCH_WAIT_TIME),
   },
+  
+  discordLink: strValue(process.env.DISCORD_LINK, ''),
 };
 
 config.server.type = config.server.type.toLocaleUpperCase();

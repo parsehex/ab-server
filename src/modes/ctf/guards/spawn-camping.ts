@@ -121,7 +121,7 @@ export default class SpawnCampingGuard extends System {
         this.emit(
           BROADCAST_CHAT_SERVER_WHISPER,
           player.id.current,
-          'You were automatically switched in spectate mode (AFK).'
+          'You were automatically switched to spectate mode (AFK).'
         );
       }
     }
