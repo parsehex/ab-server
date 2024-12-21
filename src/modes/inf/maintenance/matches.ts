@@ -11,12 +11,14 @@ import {
   BROADCAST_CHAT_SERVER_WHISPER,
   BROADCAST_GAME_FLAG,
   BROADCAST_PLAYER_RETEAM,
+  BROADCAST_SERVER_CUSTOM,
   BROADCAST_SERVER_MESSAGE,
   CTF_SHUFFLE_PLAYERS,
   PLAYERS_CREATED,
   PLAYERS_KILL,
   PLAYERS_RESPAWN,
   PLAYERS_UPDATE_TEAM,
+  SYNC_ENQUEUE_UPDATE,
   TIMELINE_CLOCK_SECOND,
   TIMELINE_GAME_MATCH_END,
   TIMELINE_GAME_MATCH_START,
@@ -55,14 +57,24 @@ export default class GameMatches extends System {
     this.log.debug(`Survivors alive: ${survivorsAlive}, Infected alive: ${infectedAlive}`);
 
     if (survivorsAlive === 0 || infectedAlive === 0) {
+      const enemy = players.find(
+        player => player.id.current === enemyId
+      );
       // one team has lost
       // end the match
+      this.storage.gameEntity.match.isActive = false;
+      this.storage.gameEntity.match.winnerTeam = infectedAlive > 0 ? CTF_TEAMS.RED : CTF_TEAMS.BLUE;
       this.emit(
         BROADCAST_SERVER_MESSAGE,
         `Team ${infectedAlive > 0 ? 'Infected' : 'Survivors'} wins!`,
         SERVER_MESSAGE_TYPES.INFO,
         3 * MS_PER_SEC
       );
+
+      this.emit(BROADCAST_CHAT_SERVER_PUBLIC, `Team ${infectedAlive > 0 ? 'Infected' : 'Survivors'} wins!`);
+      this.emit(BROADCAST_SERVER_CUSTOM, victim.id.current, 0);
+      this.emit(BROADCAST_SERVER_CUSTOM, enemy.id.current, 0);
+
       this.emit(TIMELINE_GAME_MATCH_END);
     } else if (isVictimSurvivor) {
       this.log.debug(`Player ${victim.name.current} has been infected!`);
@@ -84,6 +96,7 @@ export default class GameMatches extends System {
 
           this.emit(BROADCAST_PLAYER_RETEAM, [victimId]);
           this.channel(CHANNEL_RESPAWN_PLAYER).delay(PLAYERS_RESPAWN, victimId);
+          this.emit(BROADCAST_SERVER_CUSTOM, victim.id.current, 0);
         }, PLAYERS_DEATH_INACTIVITY_MS + 100);
       }
     }
