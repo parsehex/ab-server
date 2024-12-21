@@ -4,16 +4,19 @@ import {
   CTF_FLAGS_STATE_TO_NEW_PLAYER_BROADCAST_DELAY_MS,
   CTF_NEW_GAME_ALERT_DURATION_MS,
   MS_PER_SEC,
+  PLAYERS_DEATH_INACTIVITY_MS,
 } from '../../../constants';
 import {
   BROADCAST_CHAT_SERVER_PUBLIC,
   BROADCAST_CHAT_SERVER_WHISPER,
   BROADCAST_GAME_FLAG,
+  BROADCAST_PLAYER_RETEAM,
   BROADCAST_SERVER_MESSAGE,
   CTF_SHUFFLE_PLAYERS,
   PLAYERS_CREATED,
   PLAYERS_KILL,
   PLAYERS_RESPAWN,
+  PLAYERS_UPDATE_TEAM,
   TIMELINE_CLOCK_SECOND,
   TIMELINE_GAME_MATCH_END,
   TIMELINE_GAME_MATCH_START,
@@ -21,6 +24,7 @@ import {
 import { SCOREBOARD_FORCE_UPDATE } from '../../../events/scoreboard';
 import { System } from '../../../server/system';
 import { Player, PlayerId, TeamId } from '../../../types';
+import { CHANNEL_RESPAWN_PLAYER } from '../../../events/channels';
 
 export default class GameMatches extends System {
   private timeout = 0;
@@ -41,6 +45,8 @@ export default class GameMatches extends System {
    * @param playerId
    */
   onPlayerKill(playerId: PlayerId): void {
+    const player = this.storage.playerList.get(playerId);
+    const isVictimSurvivor = this.config.server.typeId === 4 && player.team.current === CTF_TEAMS.BLUE;
     const players = Array.from(this.storage.playerList.values());
 
     const survivorsAlive = players.filter(player => player.team.current === CTF_TEAMS.BLUE && player.alivestatus?.current === 0).length;
@@ -56,6 +62,25 @@ export default class GameMatches extends System {
         SERVER_MESSAGE_TYPES.INFO,
         3 * MS_PER_SEC
       );
+    } else if (isVictimSurvivor) {
+      this.log.debug(`Player ${player.name.current} has been infected!`);
+      if (this.storage.connectionList.has(this.storage.playerMainConnectionList.get(playerId))) {
+        const connection = this.storage.connectionList.get(
+          this.storage.playerMainConnectionList.get(playerId)
+        );
+
+        connection.pending.respawn = true;
+
+        connection.timeouts.respawn = setTimeout(() => {
+          this.emit(BROADCAST_CHAT_SERVER_PUBLIC, `Player ${player.name.current} has been infected!`);
+          player.team.current = CTF_TEAMS.RED;
+          player.delayed.RESPAWN = true;
+          this.emit(PLAYERS_UPDATE_TEAM, playerId, CTF_TEAMS.RED);
+
+          this.emit(BROADCAST_PLAYER_RETEAM, [playerId]);
+          this.channel(CHANNEL_RESPAWN_PLAYER).delay(PLAYERS_RESPAWN, playerId);
+        }, PLAYERS_DEATH_INACTIVITY_MS + 100);
+      }
     }
   }
 

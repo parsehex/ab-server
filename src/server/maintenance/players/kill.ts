@@ -59,7 +59,6 @@ export default class GamePlayersKill extends System {
    * @param victimId
    */
   onKillPlayer(victimId: PlayerId, projectileId: MobId, isPlayer = false): void {
-    this.log.debug(`Player ${victimId} killed by ${projectileId}`);
     this.killIndex += 1;
 
     const killTimestamp = this.app.ticker.now + this.killIndex;

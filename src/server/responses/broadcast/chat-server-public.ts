@@ -3,12 +3,17 @@ import { BROADCAST_CHAT_SERVER_PUBLIC, CONNECTIONS_SEND_PACKETS } from '../../..
 import { System } from '../../system';
 
 export default class ChatServerPublicBroadcast extends System {
+  private isDev = false;
+
   constructor({ app }) {
     super({ app });
 
     this.listeners = {
       [BROADCAST_CHAT_SERVER_PUBLIC]: this.onChatServerPublic,
     };
+
+    if (process.env.NODE_ENV === 'development')
+      this.isDev = true;
   }
 
   /**
@@ -20,6 +25,10 @@ export default class ChatServerPublicBroadcast extends System {
     this.log.chatPublic(this.storage.serverPlayerId, text);
 
     const recipients = [...this.storage.humanConnectionIdList];
+
+    // Probably connected to same IP as bots in dev mode
+    if (this.isDev) recipients.push(...this.storage.botConnectionIdList);
+
     let offset = 0;
 
     while (offset < text.length) {
