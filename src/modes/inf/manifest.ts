@@ -3,13 +3,10 @@ import Match from '../../server/components/game/match';
 import GameManifest from '../../server/mainfest';
 import GameChat from '../../server/maintenance/chat';
 import DropCommandHandler from './commands/drop';
-import ElectionsCommandHandler from './commands/elections';
 import MatchCommandHandler from './commands/match';
 import CTFPlayersCommandHandler from './commands/players';
 import SwitchCommandHandler from './commands/switch';
-import UsurpCommandHandler from './commands/usurp';
 import SpawnCampingGuard from './guards/spawn-camping';
-import GameEndpointAPI from './maintenance/api';
 import CTFGameChat from './maintenance/chat';
 import GameFlags from './maintenance/flags';
 import GameMatches from './maintenance/matches';
@@ -61,7 +58,6 @@ export default class InfGameManifest extends GameManifest {
 
       // Maintenance.
       CTFGameChat,
-      GameEndpointAPI,
       GameFlags,
       GameMatches,
       GamePlayers,
