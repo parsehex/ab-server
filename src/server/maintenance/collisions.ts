@@ -338,7 +338,7 @@ export default class GameCollisions extends System {
               const enemy = this.storage.playerList.get(id);
               const isEnemyInfected = enemy.team.current === 2;
 
-              if (isInfected && !isEnemyInfected && enemy.alivestatus.current === PLAYERS_ALIVE_STATUSES.ALIVE) {
+              if (isInfected && !isEnemyInfected && enemy.alivestatus.current === PLAYERS_ALIVE_STATUSES.ALIVE && this.storage.gameEntity.match.isActive) {
                 const enemyHitbox = enemy.hitbox.current;
                 const playerHitbox = player.hitbox.current;
                 // TODO more dmg if enemy boosting

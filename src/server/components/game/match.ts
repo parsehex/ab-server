@@ -3,7 +3,7 @@ import Component from '../../component';
 
 export default class Match extends Component {
   /**
-   * Common to both CTF and BTR
+   * Common to CTF BTR
    */
   public isActive = true;
 
