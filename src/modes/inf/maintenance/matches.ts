@@ -102,19 +102,19 @@ export default class GameMatches extends System {
         );
 
         this.emit(CTF_SHUFFLE_PLAYERS);
-      } else if (this.timeout === 50) {
+      } else if (this.timeout === 20) {
         this.emit(
           BROADCAST_SERVER_MESSAGE,
           'Game starting in 10 seconds',
           SERVER_MESSAGE_TYPES.ALERT,
           4 * MS_PER_SEC
         );
-      } else if (this.timeout >= 55 && this.timeout < 60) {
-        const left = 60 - this.timeout;
+      } else if (this.timeout >= 25 && this.timeout < 30) {
+        const left = 30 - this.timeout;
         let text = 'Game starting in a second';
 
         if (left !== 1) {
-          text = `Game starting in ${60 - this.timeout} seconds`;
+          text = `Game starting in ${30 - this.timeout} seconds`;
         }
 
         this.emit(
