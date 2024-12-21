@@ -42,11 +42,11 @@ export default class GameMatches extends System {
   /**
    * Handle player kill event.
    *
-   * @param playerId
+   * @param victimId
    */
-  onPlayerKill(playerId: PlayerId): void {
-    const player = this.storage.playerList.get(playerId);
-    const isVictimSurvivor = this.config.server.typeId === 4 && player.team.current === CTF_TEAMS.BLUE;
+  onPlayerKill(victimId: PlayerId, enemyId: PlayerId): void {
+    const victim = this.storage.playerList.get(victimId);
+    const isVictimSurvivor = this.config.server.typeId === 4 && victim.team.current === CTF_TEAMS.BLUE;
     const players = Array.from(this.storage.playerList.values());
 
     const survivorsAlive = players.filter(player => player.team.current === CTF_TEAMS.BLUE && player.alivestatus?.current === 0).length;
@@ -63,22 +63,25 @@ export default class GameMatches extends System {
         3 * MS_PER_SEC
       );
     } else if (isVictimSurvivor) {
-      this.log.debug(`Player ${player.name.current} has been infected!`);
-      if (this.storage.connectionList.has(this.storage.playerMainConnectionList.get(playerId))) {
+      this.log.debug(`Player ${victim.name.current} has been infected!`);
+      if (this.storage.connectionList.has(this.storage.playerMainConnectionList.get(victimId))) {
         const connection = this.storage.connectionList.get(
-          this.storage.playerMainConnectionList.get(playerId)
+          this.storage.playerMainConnectionList.get(victimId)
         );
 
         connection.pending.respawn = true;
 
         connection.timeouts.respawn = setTimeout(() => {
-          this.emit(BROADCAST_CHAT_SERVER_PUBLIC, `Player ${player.name.current} has been infected!`);
-          player.team.current = CTF_TEAMS.RED;
-          player.delayed.RESPAWN = true;
-          this.emit(PLAYERS_UPDATE_TEAM, playerId, CTF_TEAMS.RED);
+          const enemy = players.find(
+            player => player.id.current === enemyId
+          );
+          this.emit(BROADCAST_CHAT_SERVER_PUBLIC, `${enemy.name.current} has infected ${victim.name.current}!`);
+          victim.team.current = CTF_TEAMS.RED;
+          victim.delayed.RESPAWN = true;
+          this.emit(PLAYERS_UPDATE_TEAM, victimId, CTF_TEAMS.RED);
 
-          this.emit(BROADCAST_PLAYER_RETEAM, [playerId]);
-          this.channel(CHANNEL_RESPAWN_PLAYER).delay(PLAYERS_RESPAWN, playerId);
+          this.emit(BROADCAST_PLAYER_RETEAM, [victimId]);
+          this.channel(CHANNEL_RESPAWN_PLAYER).delay(PLAYERS_RESPAWN, victimId);
         }, PLAYERS_DEATH_INACTIVITY_MS + 100);
       }
     }
