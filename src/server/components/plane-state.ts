@@ -11,6 +11,7 @@ export default class PlaneState extends Component {
 
   public stealthed: boolean;
 
+  /** Does player have the flag? */
   public flagspeed: boolean;
 
   constructor() {

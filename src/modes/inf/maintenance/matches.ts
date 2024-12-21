@@ -54,14 +54,16 @@ export default class GameMatches extends System {
 
     this.log.debug(`Survivors alive: ${survivorsAlive}, Infected alive: ${infectedAlive}`);
 
-    // if either team has no players alive, end the match with the other team winning
     if (survivorsAlive === 0 || infectedAlive === 0) {
+      // one team has lost
+      // end the match
       this.emit(
         BROADCAST_SERVER_MESSAGE,
         `Team ${infectedAlive > 0 ? 'Infected' : 'Survivors'} wins!`,
         SERVER_MESSAGE_TYPES.INFO,
         3 * MS_PER_SEC
       );
+      this.emit(TIMELINE_GAME_MATCH_END);
     } else if (isVictimSurvivor) {
       this.log.debug(`Player ${victim.name.current} has been infected!`);
       if (this.storage.connectionList.has(this.storage.playerMainConnectionList.get(victimId))) {
@@ -91,17 +93,10 @@ export default class GameMatches extends System {
     if (!this.storage.gameEntity.match.isActive) {
       this.timeout += 1;
 
-      if (this.timeout === 15) {
+      if (this.timeout === 30) {
         this.emit(
           BROADCAST_SERVER_MESSAGE,
-          'New game starting in 1 minute',
-          SERVER_MESSAGE_TYPES.ALERT,
-          CTF_NEW_GAME_ALERT_DURATION_MS
-        );
-      } else if (this.timeout === 30) {
-        this.emit(
-          BROADCAST_SERVER_MESSAGE,
-          'Game starting in 30 seconds - shuffling teams',
+          'Game starting in 30 seconds',
           SERVER_MESSAGE_TYPES.ALERT,
           5 * MS_PER_SEC
         );
@@ -129,8 +124,7 @@ export default class GameMatches extends System {
           CTF_COUNTDOWN_DURATION_MS
         );
       } else if (
-        this.timeout >= 60 ||
-        (this.storage.gameEntity.match.blue === 0 && this.storage.gameEntity.match.red === 0)
+        this.timeout >= 30
       ) {
         this.emit(
           BROADCAST_SERVER_MESSAGE,
@@ -143,16 +137,12 @@ export default class GameMatches extends System {
         this.storage.gameEntity.match.current += 1;
         this.storage.gameEntity.match.isActive = true;
         this.storage.gameEntity.match.start = Date.now();
-        this.storage.gameEntity.match.blue = 0;
-        this.storage.gameEntity.match.red = 0;
         this.timeout = 0;
-
-        this.emit(BROADCAST_GAME_FLAG, CTF_TEAMS.BLUE);
-        this.emit(BROADCAST_GAME_FLAG, CTF_TEAMS.RED);
 
         const playersIterator = this.storage.playerList.values();
         let player: Player = playersIterator.next().value;
 
+        // Reset current match stats and respawn players
         while (player !== undefined) {
           player.delayed.RESPAWN = true;
           player.times.activePlayingBlue = 0;

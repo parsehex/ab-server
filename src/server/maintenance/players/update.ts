@@ -667,6 +667,7 @@ export default class GamePlayersUpdate extends System {
 
             const isInfectedMode = this.config.server.typeId === 4;
             const isInfected = isInfectedMode && player.team.current === 2;
+            // Switch Infected players to Copter missiles
             if (isInfected) {
               SHIP_SPECS = SHIPS_SPECS[SHIPS_TYPES.COPTER];
             }
