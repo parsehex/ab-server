@@ -19,6 +19,7 @@ import {
   PLAYERS_RESPAWN,
   PLAYERS_UPDATE_TEAM,
   SYNC_ENQUEUE_UPDATE,
+  TIMELINE_CLOCK_MINUTE,
   TIMELINE_CLOCK_SECOND,
   TIMELINE_GAME_MATCH_END,
   TIMELINE_GAME_MATCH_START,
@@ -31,6 +32,7 @@ import { CHANNEL_RESPAWN_PLAYER } from '../../../events/channels';
 export default class GameMatches extends System {
   private timeout = 0;
   private timeoutMax = 30;
+  private matchTimeMin = 0;
 
   constructor({ app }) {
     super({ app });
@@ -38,6 +40,7 @@ export default class GameMatches extends System {
     this.listeners = {
       [PLAYERS_CREATED]: this.announceMatchState,
       [TIMELINE_CLOCK_SECOND]: this.onSecondTick,
+      [TIMELINE_CLOCK_MINUTE]: this.onMinuteTick,
       [PLAYERS_KILL]: this.onPlayerKill,
     };
 
@@ -174,6 +177,36 @@ export default class GameMatches extends System {
         this.emit(TIMELINE_GAME_MATCH_START);
 
         this.emit(SCOREBOARD_FORCE_UPDATE);
+      }
+    }
+  }
+
+  onMinuteTick(): void {
+    if (this.storage.gameEntity.match.isActive && this.storage.playerList.size > 0) {
+      this.matchTimeMin += 1;
+
+      if (this.matchTimeMin === 10) {
+        // Survivors win
+        this.storage.gameEntity.match.isActive = false;
+        this.storage.gameEntity.match.winnerTeam = CTF_TEAMS.BLUE;
+        this.emit(
+          BROADCAST_SERVER_MESSAGE,
+          'Survivors win!',
+          SERVER_MESSAGE_TYPES.INFO,
+          3 * MS_PER_SEC
+        );
+
+        const playersIterator = this.storage.playerList.values();
+        let player: Player;
+        for (let i = 0; i < this.storage.playerList.size; i++) {
+          player = playersIterator.next().value;
+          if (player !== undefined) {
+            this.delay(BROADCAST_SERVER_CUSTOM, player.id.current, 0);
+          }
+        }
+
+        this.emit(TIMELINE_GAME_MATCH_END);
+        this.log.debug('Match ended. Survivors win.');
       }
     }
   }
