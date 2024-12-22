@@ -76,8 +76,8 @@ export default class GameMatches extends System {
       );
 
       this.emit(BROADCAST_CHAT_SERVER_PUBLIC, `Team ${infectedAlive > 0 ? 'Infected' : 'Survivors'} wins!`);
-      this.emit(BROADCAST_SERVER_CUSTOM, victim.id.current, 0);
-      this.emit(BROADCAST_SERVER_CUSTOM, enemy.id.current, 0);
+      this.delay(BROADCAST_SERVER_CUSTOM, victim.id.current, 0);
+      this.delay(BROADCAST_SERVER_CUSTOM, enemy.id.current, 0);
 
       this.emit(TIMELINE_GAME_MATCH_END);
     } else if (isVictimSurvivor) {
