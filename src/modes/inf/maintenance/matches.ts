@@ -110,10 +110,10 @@ export default class GameMatches extends System {
     if (!this.storage.gameEntity.match.isActive) {
       this.timeout += 1;
 
-      if (this.timeout === this.timeoutMax) {
+      if (this.timeout === 5) {
         this.emit(
           BROADCAST_SERVER_MESSAGE,
-          `Game starting in ${this.timeoutMax} seconds`,
+          `Game starting in ${this.timeoutMax - this.timeout} seconds`,
           SERVER_MESSAGE_TYPES.ALERT,
           5 * MS_PER_SEC
         );
