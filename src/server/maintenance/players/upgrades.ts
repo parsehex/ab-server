@@ -76,7 +76,8 @@ export default class GameUpgrades extends System {
     }
 
     this.feverScheduler = new TimeTrigger(schedule);
-    this.config.upgrades.fever.auto = true;
+    // I don't understand this line's purpose
+    // this.config.upgrades.fever.auto = true;
 
     if (schedule.length > 0) {
       this.log.debug('Upgrades fever schedule items loaded: %d', schedule.length);

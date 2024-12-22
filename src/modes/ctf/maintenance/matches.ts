@@ -31,6 +31,7 @@ import { Player, PlayerId, TeamId } from '../../../types';
 export default class GameMatches extends System {
   private timeout = 0;
   private timeoutMax = 30;
+  private timeoutHalf = 0;
 
   constructor({ app }) {
     super({ app });
@@ -40,6 +41,8 @@ export default class GameMatches extends System {
       [PLAYERS_CREATED]: this.announceMatchState,
       [TIMELINE_CLOCK_SECOND]: this.onSecondTick,
     };
+
+    this.timeoutHalf = Math.floor(this.timeoutMax / 2);
   }
 
   onSecondTick(): void {
@@ -53,7 +56,7 @@ export default class GameMatches extends System {
           SERVER_MESSAGE_TYPES.ALERT,
           CTF_NEW_GAME_ALERT_DURATION_MS
         );
-      } else if (this.timeout <= this.timeoutMax / 2) {
+      } else if (this.timeout === this.timeoutHalf) {
         this.emit(
           BROADCAST_SERVER_MESSAGE,
           `Game starting in ${this.timeoutMax - this.timeout} seconds - shuffling teams`,
