@@ -632,8 +632,8 @@ const config: GameServerConfigInterface = {
     maxChance: floatValue(process.env.UPGRADES_DROP_MAX_CHANCE, UPGRADES_DEFAULT_MAX_CHANCE),
 
     fever: {
-      active: false,
       auto: false,
+      active: boolValue(process.env.UPGRADES_FEVER_ACTIVE, false),
     },
   },
 
