@@ -30,6 +30,7 @@ import { CHANNEL_RESPAWN_PLAYER } from '../../../events/channels';
 
 export default class GameMatches extends System {
   private timeout = 0;
+  private timeoutMax = 30;
 
   constructor({ app }) {
     super({ app });
@@ -39,6 +40,9 @@ export default class GameMatches extends System {
       [TIMELINE_CLOCK_SECOND]: this.onSecondTick,
       [PLAYERS_KILL]: this.onPlayerKill,
     };
+
+    const isDev = process.env.NODE_ENV === 'development';
+    if (isDev) this.timeoutMax = 10;
   }
 
   /**
@@ -106,24 +110,24 @@ export default class GameMatches extends System {
     if (!this.storage.gameEntity.match.isActive) {
       this.timeout += 1;
 
-      if (this.timeout === 30) {
+      if (this.timeout === this.timeoutMax) {
         this.emit(
           BROADCAST_SERVER_MESSAGE,
-          'Game starting in 30 seconds',
+          `Game starting in ${this.timeoutMax} seconds`,
           SERVER_MESSAGE_TYPES.ALERT,
           5 * MS_PER_SEC
         );
 
         this.emit(CTF_SHUFFLE_PLAYERS);
-      } else if (this.timeout === 20) {
+      } else if (this.timeout === this.timeoutMax - 10) {
         this.emit(
           BROADCAST_SERVER_MESSAGE,
           'Game starting in 10 seconds',
           SERVER_MESSAGE_TYPES.ALERT,
           4 * MS_PER_SEC
         );
-      } else if (this.timeout >= 25 && this.timeout < 30) {
-        const left = 30 - this.timeout;
+      } else if (this.timeout >= this.timeoutMax - 5 && this.timeout < this.timeoutMax) {
+        const left = this.timeoutMax - this.timeout;
         let text = 'Game starting in a second';
 
         if (left !== 1) {
@@ -137,7 +141,7 @@ export default class GameMatches extends System {
           CTF_COUNTDOWN_DURATION_MS
         );
       } else if (
-        this.timeout >= 30
+        this.timeout >= this.timeoutMax
       ) {
         this.emit(
           BROADCAST_SERVER_MESSAGE,
