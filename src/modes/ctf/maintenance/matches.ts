@@ -30,6 +30,7 @@ import { Player, PlayerId, TeamId } from '../../../types';
 
 export default class GameMatches extends System {
   private timeout = 0;
+  private timeoutMax = 30;
 
   constructor({ app }) {
     super({ app });
@@ -45,35 +46,35 @@ export default class GameMatches extends System {
     if (!this.storage.gameEntity.match.isActive) {
       this.timeout += 1;
 
-      if (this.timeout === 15) {
+      if (this.timeout === 5) {
         this.emit(
           BROADCAST_SERVER_MESSAGE,
-          'New game starting in 1 minute',
+          `New game starting in ${this.timeoutMax - this.timeout} seconds`,
           SERVER_MESSAGE_TYPES.ALERT,
           CTF_NEW_GAME_ALERT_DURATION_MS
         );
-      } else if (this.timeout === 30) {
+      } else if (this.timeout <= this.timeoutMax / 2) {
         this.emit(
           BROADCAST_SERVER_MESSAGE,
-          'Game starting in 30 seconds - shuffling teams',
+          `Game starting in ${this.timeoutMax - this.timeout} seconds - shuffling teams`,
           SERVER_MESSAGE_TYPES.ALERT,
           5 * MS_PER_SEC
         );
 
         this.emit(CTF_SHUFFLE_PLAYERS);
-      } else if (this.timeout === 50) {
+      } else if (this.timeout === this.timeoutMax - 10) {
         this.emit(
           BROADCAST_SERVER_MESSAGE,
           'Game starting in 10 seconds',
           SERVER_MESSAGE_TYPES.ALERT,
           4 * MS_PER_SEC
         );
-      } else if (this.timeout >= 55 && this.timeout < 60) {
-        const left = 60 - this.timeout;
+      } else if (this.timeout >= this.timeoutMax - 5 && this.timeout < this.timeoutMax) {
+        const left = this.timeoutMax - this.timeout;
         let text = 'Game starting in a second';
 
         if (left !== 1) {
-          text = `Game starting in ${60 - this.timeout} seconds`;
+          text = `Game starting in ${this.timeoutMax - this.timeout} seconds`;
         }
 
         this.emit(
@@ -83,7 +84,7 @@ export default class GameMatches extends System {
           CTF_COUNTDOWN_DURATION_MS
         );
       } else if (
-        this.timeout >= 60 ||
+        this.timeout >= this.timeoutMax ||
         (this.storage.gameEntity.match.blue === 0 && this.storage.gameEntity.match.red === 0)
       ) {
         this.emit(
