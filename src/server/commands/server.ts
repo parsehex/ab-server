@@ -100,6 +100,8 @@ export default class ServerCommandHandler extends System {
       `transfered: ${kbIn}/${kbOut} KB, `,
       `skipped: ${this.m.lastSample.sf} fr, `,
       `uptime: ${this.m.uptime.human}, `,
+      `upg fever: ${this.config.upgrades.fever.active}, `,
+      this.config.server.type === 'CTF' ? `extra spawns: ${this.config.ctf.extraSpawns}, ` : '',
       `v${this.cfg.server.version}`,
       edition,
     ].join('');
