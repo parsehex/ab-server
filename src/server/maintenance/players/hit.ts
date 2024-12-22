@@ -1,5 +1,5 @@
 import { MOB_TYPES } from '@airbattle/protocol';
-import { PLAYERS_HEALTH, PROJECTILES_SPECS, SHIPS_SPECS, UPGRADES_SPECS } from '../../../constants';
+import { PLAYERS_HEALTH, PROJECTILES_SPECS, SHIPS_SPECS, SHIPS_TYPES, UPGRADES_SPECS } from '../../../constants';
 import { BROADCAST_EVENT_STEALTH, BROADCAST_PLAYER_KILL, BROADCAST_PLAYER_UPDATE, PLAYERS_HIT, PLAYERS_KILL } from '../../../events';
 import { MobId, PlayerId, Projectile } from '../../../types';
 import { System } from '../../system';
@@ -66,7 +66,7 @@ export default class GamePlayersHit extends System {
 
       // apply damage
       const fullAirplaneHealth =
-        (1 / SHIPS_SPECS[victim.planetype.current].damageFactor) *
+        (1 / SHIPS_SPECS[SHIPS_TYPES.COPTER].damageFactor * 0.5) *
         UPGRADES_SPECS.DEFENSE.factor[victim.upgrades.defense];
       victim.health.current = fullAirplaneHealth * victim.health.current - damage;
       victim.health.current /= fullAirplaneHealth;
