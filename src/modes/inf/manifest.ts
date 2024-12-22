@@ -8,7 +8,6 @@ import CTFPlayersCommandHandler from './commands/players';
 import SwitchCommandHandler from './commands/switch';
 import SpawnCampingGuard from './guards/spawn-camping';
 import CTFGameChat from './maintenance/chat';
-import GameFlags from './maintenance/flags';
 import GameMatches from './maintenance/matches';
 import GamePlayers from './maintenance/players';
 import GamePlayersStats from './maintenance/players-stats';
@@ -58,7 +57,6 @@ export default class InfGameManifest extends GameManifest {
 
       // Maintenance.
       CTFGameChat,
-      GameFlags,
       GameMatches,
       GamePlayers,
       GamePlayersStats,
