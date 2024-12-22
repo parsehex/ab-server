@@ -64,11 +64,6 @@ export default class GameMatches extends System {
     this.log.debug(`Survivors alive: ${survivorsAlive}, Infected alive: ${infectedAlive}`);
 
     if (survivorsAlive === 0 || infectedAlive === 0) {
-      const enemy = players.find(
-        player => player.id.current === enemyId
-      );
-      // one team has lost
-      // end the match
       this.storage.gameEntity.match.isActive = false;
       this.storage.gameEntity.match.winnerTeam = infectedAlive > 0 ? CTF_TEAMS.RED : CTF_TEAMS.BLUE;
       this.emit(
@@ -78,14 +73,26 @@ export default class GameMatches extends System {
         3 * MS_PER_SEC
       );
 
-      this.emit(BROADCAST_CHAT_SERVER_PUBLIC, `Team ${infectedAlive > 0 ? 'Infected' : 'Survivors'} wins!`);
-      this.delay(BROADCAST_SERVER_CUSTOM, victim.id.current, 0);
-      this.delay(BROADCAST_SERVER_CUSTOM, enemy.id.current, 0);
+      const playersIterator = this.storage.playerList.values();
+      let player: Player;
+      for (let i = 0; i < players.length; i++) {
+        player = playersIterator.next().value;
+        if (player !== undefined) {
+          this.delay(BROADCAST_SERVER_CUSTOM, player.id.current, 0);
+        }
+      }
 
       this.emit(TIMELINE_GAME_MATCH_END);
+      this.log.debug(`Match ended. Team ${infectedAlive > 0 ? 'Infected' : 'Survivors'} wins.`);
     } else if (isVictimSurvivor) {
-      this.log.debug(`Player ${victim.name.current} has been infected!`);
       if (this.storage.connectionList.has(this.storage.playerMainConnectionList.get(victimId))) {
+        const enemy = players.find(
+          player => player.id.current === enemyId
+        );
+        const enemyName = enemy ? enemy.name.current : 'A player';
+        victim.team.current = CTF_TEAMS.RED;
+        this.emit(BROADCAST_CHAT_SERVER_PUBLIC, `${enemyName} has infected ${victim.name.current}!`);
+
         const connection = this.storage.connectionList.get(
           this.storage.playerMainConnectionList.get(victimId)
         );
@@ -93,17 +100,11 @@ export default class GameMatches extends System {
         connection.pending.respawn = true;
 
         connection.timeouts.respawn = setTimeout(() => {
-          const enemy = players.find(
-            player => player.id.current === enemyId
-          );
-          this.emit(BROADCAST_CHAT_SERVER_PUBLIC, `${enemy.name.current} has infected ${victim.name.current}!`);
-          victim.team.current = CTF_TEAMS.RED;
           victim.delayed.RESPAWN = true;
           this.emit(PLAYERS_UPDATE_TEAM, victimId, CTF_TEAMS.RED);
 
           this.emit(BROADCAST_PLAYER_RETEAM, [victimId]);
           this.channel(CHANNEL_RESPAWN_PLAYER).delay(PLAYERS_RESPAWN, victimId);
-          this.emit(BROADCAST_SERVER_CUSTOM, victim.id.current, 0);
         }, PLAYERS_DEATH_INACTIVITY_MS + 100);
       }
     }
