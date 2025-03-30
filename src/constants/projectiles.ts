@@ -145,4 +145,23 @@ export const PROJECTILES_SPECS = {
 
     repelEnergy: 168,
   },
+
+  [MOB_TYPES.UPGRADE]: {
+    maxSpeed: 9,
+    baseSpeed: 5.5,
+
+    speedFactor: 0.3,
+    infernoSpeedFactor: 1,
+
+    accel: 0.105,
+
+    damage: 0.4,
+    infernoDamageFactor: 1,
+
+    distance: 1104,
+
+    shape: PROJECTILES_SHAPES.REGULAR,
+
+    repelEnergy: 197,
+  },
 };

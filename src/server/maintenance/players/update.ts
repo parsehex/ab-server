@@ -667,9 +667,9 @@ export default class GamePlayersUpdate extends System {
 
             const isInfectedMode = this.config.server.typeId === 4;
             const isInfected = isInfectedMode && player.team.current === 2;
-            // Switch Infected players to Copter missiles
+            // Switch Infected players to lower damage missiles
             if (isInfected) {
-              SHIP_SPECS = SHIPS_SPECS[SHIPS_TYPES.COPTER];
+              SHIP_SPECS = SHIPS_SPECS[SHIPS_TYPES.INFECTED];
             }
 
             const FIRE_TEMPLATE = SHIP_SPECS[fireMode][fireType];
@@ -717,6 +717,8 @@ export default class GamePlayersUpdate extends System {
               const accelX = projectileRotSin * PROJECTILE_SPECS.accel * upgradeFactor;
               const accelY = -projectileRotCos * PROJECTILE_SPECS.accel * upgradeFactor;
 
+              this.log.debug(`accelX: ${accelX}, accelY: ${accelY}`);
+
               let posX = player.position.x + PROJECTILE_FIRE_TEMPLATE.y * player.rotation.sin;
               let posY = player.position.y - PROJECTILE_FIRE_TEMPLATE.y * player.rotation.cos;
 
@@ -750,9 +752,10 @@ export default class GamePlayersUpdate extends System {
                     (dropVelocity + (PROJECTILE_SPECS.baseSpeed + speedFactor) * upgradeFactor),
                   -projectileRotCos *
                     (dropVelocity + (PROJECTILE_SPECS.baseSpeed + speedFactor) * upgradeFactor),
-                  PROJECTILE_SPECS.maxSpeed * upgradeFactor
+                  PROJECTILE_SPECS.maxSpeed * upgradeFactor + 5
                 )
               );
+              this.log.debug(`${JSON.stringify(projectile)}`);
 
               projectile.velocity.length =
                 dropVelocity + (PROJECTILE_SPECS.baseSpeed + speedFactor) * upgradeFactor;

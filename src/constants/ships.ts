@@ -7,6 +7,7 @@ export const SHIPS_TYPES = {
   COPTER: 3,
   TORNADO: 4,
   PROWLER: 5,
+  INFECTED: 6,
 };
 
 export const SHIPS_NAMES = {
@@ -15,6 +16,7 @@ export const SHIPS_NAMES = {
   3: 'Mohawk',
   4: 'Tornado',
   5: 'Prowler',
+  6: 'Infected',
 };
 
 export const SHIPS_FIRE_MODES = {
@@ -314,5 +316,47 @@ export const SHIPS_SPECS = {
       missileTemplate(MOB_TYPES.PROWLER_MISSILE, 0, 35, 0),
       missileTemplate(MOB_TYPES.PROWLER_MISSILE, 20, 0, 0.05),
     ]),
+  },
+
+  [SHIPS_TYPES.INFECTED]: {
+    // for now this if only used for its fire template
+    name: 'infected',
+
+    turnFactor: 0.07,
+    accelFactor: 0.275,
+    brakeFactor: 0.025,
+    boostFactor: 1,
+    infernoFactor: 0.75,
+
+    maxSpeed: 6,
+    minSpeed: 0.001,
+    flagSpeed: 5,
+
+    healthRegen: 0.0005,
+    energyRegen: 0.01,
+    fireEnergy: 0.3,
+    specialEnergy: 0,
+    specialEnergyRegen: 0,
+    specialDelay: 0,
+
+    fireDelay: 300,
+    damageFactor: 2.87,
+    energyLight: 0.3,
+
+    collisions: [
+      [0, -12, 15],
+      [0, 0, 17],
+      [0, 13, 15],
+      [0, 26, 15],
+    ],
+
+    repelEnergy: 1800,
+
+    [SHIPS_FIRE_MODES.FIRE]: missileFireTemplate([
+      missileTemplate(MOB_TYPES.UPGRADE, 0, 65, 0),
+    ]),
+
+    // Infected cannot use inferno
+    [SHIPS_FIRE_MODES.INFERNO]: missileFireTemplate([]),
   },
 };
