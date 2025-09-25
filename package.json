@@ -6,7 +6,7 @@
   "author": "wight",
   "license": "MIT",
   "engines": {
-    "node": "12.x"
+    "node": "22.x"
   },
   "repository": {
     "type": "git",
