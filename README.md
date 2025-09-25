@@ -15,7 +15,7 @@ Docs:
 
 Requirements:
 
-- Node.js 12.
+- Node.js v22
 - uWebSockets.js is C++ lib and distributed in binary files for the most popular operation systems, so it is unlikely, but you may have to compile it from source if you use an unpopular OS.
 
 Development:
