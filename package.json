@@ -19,6 +19,7 @@
     "start": "node dist/app.js",
     "build:dev": "tsc",
     "build": "tsc --build tsconfig.prod.json",
+    "build-bin": "npx nexe dist/app.js -o ./app-bin --build --make=\"-j4\"",
     "watch": "tsc -w",
     "dev": "npm run watch",
     "debug": "node --inspect dist/app.js",
