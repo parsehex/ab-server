@@ -462,8 +462,28 @@ export default class WsEndpoint {
       maxPayloadLength: CONNECTIONS_MAX_PAYLOAD_BYTES,
       maxBackpressure: CONNECTIONS_MAX_BACKPRESSURE,
       idleTimeout: CONNECTIONS_IDLE_TIMEOUT_SEC,
+      
+      upgrade: (res, req, context) => {
+        let userData = {ip: '', headers: {}, method: req.getMethod()};
 
-      open: (connection: PlayerConnection, req) => {
+        if (req.getHeader('x-forwarded-for') !== '') {
+          userData.ip = req.getHeader('x-forwarded-for');
+        } else if (req.getHeader('x-real-ip') !== '') {
+          userData.ip = req.getHeader('x-real-ip');
+        }
+        req.forEach((title, value) => {
+          userData.headers[title] = value;
+        });
+
+        // https://github.com/uNetworking/uWebSockets.js/blob/master/examples/Upgrade.js
+        res.upgrade({ myData: userData },
+          req.getHeader('sec-websocket-key'),
+          req.getHeader('sec-websocket-protocol'),
+          req.getHeader('sec-websocket-extensions'),
+          context);
+      },
+
+      open: (connection: PlayerConnection) => {
         const connectionId = this.createConnectionId();
         const now = Date.now();
         const meta: WorkerConnectionMeta = {
@@ -472,25 +492,22 @@ export default class WsEndpoint {
           headers: {},
           createdAt: now,
         };
+        
+        const userData = connection.getUserData();
 
-        if (req.getHeader('x-forwarded-for') !== '') {
-          meta.ip = req.getHeader('x-forwarded-for');
-        } else if (req.getHeader('x-real-ip') !== '') {
-          meta.ip = req.getHeader('x-real-ip');
-        }
+        if (userData.ip)
+          meta.ip = userData.ip;
 
         connection.meta = meta;
 
         this.wsStorage.connectionList.set(connectionId, connection);
 
-        req.forEach((title, value) => {
-          meta.headers[title] = value;
-        });
+        meta.headers = userData.headers;
 
         this.log.debug('Connection opened: %o', {
           connectionId,
           ip: meta.ip,
-          method: req.getMethod(),
+          method: userData.method,
           headers: meta.headers,
         });
 
