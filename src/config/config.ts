@@ -103,6 +103,15 @@ export interface GameServerConfigInterface {
     basePath: string;
 
     /**
+     * Whether the server should look for + serve the built frontend.
+     *
+     * When true, searches for a `ab-frontend/dist` folder in upper folders.
+     *
+     * In production, please use a reverse proxy like Apache or Nginx to serve the frontend instead.
+     */
+    serveFrontend: boolean;
+
+    /**
      * Use TLS.
      */
     tls: boolean;
@@ -484,8 +493,9 @@ if (typeof process.env.LOG_CHAT_FILE === 'string' && process.env.LOG_CHAT_FILE.l
   chatLogsPath = resolvePath(strValue(process.env.LOG_CHAT_FILE, '../logs/chat.log'));
 }
 
+const env = strValue(process.env.NODE_ENV, SERVER_DEFAULT_ENVIRONMENT);
 const config: GameServerConfigInterface = {
-  env: strValue(process.env.NODE_ENV, SERVER_DEFAULT_ENVIRONMENT),
+  env,
   dotEnv: !dotEnvLoadResult.error,
 
   cwd: process.cwd(),
@@ -500,6 +510,9 @@ const config: GameServerConfigInterface = {
     host: strValue(process.env.HOST, SERVER_DEFAULT_HOST),
     port: intValue(process.env.PORT, SERVER_DEFAULT_PORT),
     basePath: parseServerPath(process.env.BASE_PATH, SERVER_DEFAULT_PATH),
+
+    // Default value is based on env type
+    serveFrontend: boolValue(process.env.SERVE_FRONTEND, env !== 'production'),
 
     compression: boolValue(process.env.WEBSOCKETS_COMPRESSION, CONNECTIONS_WEBSOCKETS_COMPRESSION),
 

@@ -12,6 +12,8 @@ export * from './connections';
 
 export * from './ctf';
 
+export * from './extra';
+
 export * from './ffa';
 
 export * from './limits';

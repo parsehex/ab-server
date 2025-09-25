@@ -1,4 +1,5 @@
-import { existsSync } from 'fs';
+import fs, { existsSync } from 'fs';
+import path from 'path';
 import { marshalServerMessage, ProtocolPacket } from '@airbattle/protocol';
 import EventEmitter from 'eventemitter3';
 import uws, { DISABLED } from 'uWebSockets.js';
@@ -12,6 +13,7 @@ import {
   CONNECTIONS_STATUS,
   CONNECTIONS_WEBSOCKETS_COMPRESSOR,
   MAX_UINT32,
+  MIME_TYPES,
 } from '../constants';
 import GameServerBootstrap from '../core/bootstrap';
 import {
@@ -43,6 +45,7 @@ import {
 } from '../types';
 import Admin from './admin';
 import ConnectionsStorage from './storage';
+import { findParent } from '../utils';
 
 export default class WsEndpoint {
   private app: GameServerBootstrap;
@@ -550,24 +553,72 @@ export default class WsEndpoint {
   }
 
   private bindHttpRoutes(): void {
+    const doServe = this.config.server.serveFrontend;
+    const frontendPath = doServe ? findParent(__dirname, "ab-frontend/dist") ?? "" : "";
+
+    this.log.info("Frontend path: %o", { frontendPath });
+
     this.uws
-      .get(`${this.path}/ping`, res => {
-        res.writeHeader('Content-type', 'application/json').end('{"pong":1}');
+      .get(`${this.path}/ping`, (res) => {
+        res.writeHeader("Access-Control-Allow-Origin", "*");
+        res
+          .writeHeader("Content-type", "application/json")
+          .end('{"pong":1}');
       })
 
-      .get(`${this.path}/`, res => {
+      .get(`${this.path}/`, (res, req) => {
         const gameModeResponse =
-          this.storage.gameModeAPIResponse === '' ? '' : `,${this.storage.gameModeAPIResponse}`;
+          this.storage.gameModeAPIResponse === ""
+            ? ""
+            : `,${this.storage.gameModeAPIResponse}`;
 
+        const isXHR = !req.getHeader("accept").includes("text/html");
+
+        // Serve index.html if frontend exists
+        if (!isXHR && frontendPath) {
+          const indexPath = path.join(frontendPath, "index.html");
+          if (fs.existsSync(indexPath)) {
+            res.writeHeader("Content-Type", "text/html");
+            res.end(fs.readFileSync(indexPath));
+            return;
+          }
+        }
+
+        // Fall back to API JSON if no frontend
         res
-          .writeHeader('Content-type', 'application/json')
+          .writeHeader("Access-Control-Allow-Origin", "*")
+          .writeHeader("Content-type", "application/json")
           .end(
             `{"players":${this.storage.playerList.size},"bots":${this.storage.botIdList.size},"spectators":${this.storage.playerInSpecModeList.size}${gameModeResponse}}`
           );
       })
 
-      .any(`${this.path}/*`, res => {
-        res.writeStatus('404 Not Found').end('');
+      .any(`${this.path}/*`, (res, req) => {
+        if (!frontendPath) {
+          res.writeStatus("404 Not Found").end("");
+          return;
+        }
+
+        const urlPath = decodeURIComponent(
+          req.getUrl().slice(this.path.length + 1)
+        );
+        const filePath = path.join(frontendPath, urlPath);
+
+        // Basic security check
+        if (!filePath.startsWith(frontendPath)) {
+          res.writeStatus("403 Forbidden").end("");
+          return;
+        }
+
+        if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
+          const ext = path.extname(filePath).toLowerCase();
+          const contentType = MIME_TYPES[ext] || "application/octet-stream";
+
+          res.writeHeader("Content-Type", contentType);
+          res.end(fs.readFileSync(filePath));
+        } else {
+          res.writeStatus("404 Not Found").end("");
+        }
       });
   }
 

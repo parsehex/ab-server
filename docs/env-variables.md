@@ -338,6 +338,24 @@ Default: `FFA`
 
 Types: FFA, CTF or BTR.
 
+### SERVE_FRONTEND
+
+Default: `false` in production, `true` in development
+
+Controls whether the server should look for + serve the built frontend.
+
+When true, the server will search for a `ab-frontend/dist` folder in upper sibling folders. For this to work, you should clone and build the frontend next to the `ab-server` folder. The following should be your directory tree:
+
+```text
+game-root/
+├── ab-server/
+│   └── dist/
+└── ab-frontend/
+    └── dist/
+```
+
+**In production, please use a reverse proxy like Apache or Nginx to serve the frontend instead.**
+
 ### STATS_PATH
 
 Default: `../data/user-stats.json`
