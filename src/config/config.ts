@@ -442,7 +442,9 @@ const floatValue = (value: string | undefined, def: number): number => {
  * @param def default value
  */
 const strValue = (value: string | undefined, def = ''): string => {
-  return value || def;
+  // Remove surrounding quotes if present
+  if (value) return value.replace(/^['"]|['"]$/g, '');
+  return def;
 };
 
 const parseBotsIP = (value: string | undefined, def: IPv4[]): IPv4[] => {
