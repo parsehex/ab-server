@@ -423,6 +423,12 @@ Schedule item params:
 
 Example: the schedule `0 30 16 0 390, 0 0 14 4 720, 0 0 12 6 1440` will run fever event on Sundays from 16:30 to 23:00, Thursdays from 14:00 to 02:00 the next day and Saturdays from 12:00 to 12:00 the next day.
 
+Example to always run upgrades fever:
+
+```env
+UPGRADES_FEVER_SCHEDULE="0 0 0 0 10079"
+```
+
 ### USER_ACCOUNTS
 
 Default: `true`

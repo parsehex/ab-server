@@ -415,6 +415,7 @@ const resolvePath = (path: string, root = appRootDir): string => {
  * @param def default value
  */
 const boolValue = (value: string | undefined, def = false): boolean => {
+  if (value) value = value.replace(/^['"]|['"]$/g, '');
   return value ? value.toLowerCase() === 'true' : def;
 };
 
