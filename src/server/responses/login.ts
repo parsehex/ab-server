@@ -63,7 +63,15 @@ export default class LoginResponse extends System {
         ),
       });
 
-      if (player.bot.current) {
+      const isBot = player.bot.current;
+      const name = player.name?.current || '';
+      
+      // Lazy attempt to catch non-bots on localhost
+      if (isBot && !name.startsWith('_') && !name.endsWith('_')) {
+        player.bot.current = false;
+      }
+      
+      if (isBot) {
         bots.push({
           id: player.id.current,
         });
