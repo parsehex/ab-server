@@ -496,21 +496,21 @@ export default class WsEndpoint {
           createdAt: now,
         };
         
-        const userData = connection.getUserData();
+        const userData = connection.getUserData().myData;
 
-        if (userData.ip)
+        if (userData && userData.ip)
           meta.ip = userData.ip;
 
         connection.meta = meta;
 
         this.wsStorage.connectionList.set(connectionId, connection);
 
-        meta.headers = userData.headers;
+        meta.headers = userData ? userData.headers : {};
 
         this.log.debug('Connection opened: %o', {
           connectionId,
           ip: meta.ip,
-          method: userData.method,
+          method: userData ? userData.method : 'unknown',
           headers: meta.headers,
         });
 
