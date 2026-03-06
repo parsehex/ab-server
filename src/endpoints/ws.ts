@@ -474,6 +474,13 @@ export default class WsEndpoint {
         } else if (req.getHeader('x-real-ip') !== '') {
           userData.ip = req.getHeader('x-real-ip');
         }
+        
+        console.log('DEBUG WS Upgrade', {
+          forwardedFor: req.getHeader('x-forwarded-for'),
+          realIp: req.getHeader('x-real-ip'),
+          remoteAddr: decodeIPv4(res.getRemoteAddressAsText())
+        });
+        
         req.forEach((title, value) => {
           userData.headers[title] = value;
         });
@@ -497,6 +504,8 @@ export default class WsEndpoint {
         };
         
         const userData = connection.getUserData().myData;
+
+        this.log.info('DEBUG: Open connection. RemoteAddress: %s, UserData: %o', decodeIPv4(connection.getRemoteAddress()), connection.getUserData());
 
         if (userData && userData.ip)
           meta.ip = userData.ip;
