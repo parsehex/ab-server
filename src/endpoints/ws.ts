@@ -465,7 +465,7 @@ export default class WsEndpoint {
       maxPayloadLength: CONNECTIONS_MAX_PAYLOAD_BYTES,
       maxBackpressure: CONNECTIONS_MAX_BACKPRESSURE,
       idleTimeout: CONNECTIONS_IDLE_TIMEOUT_SEC,
-      
+
       upgrade: (res, req, context) => {
         let userData = {ip: '', headers: {}, method: req.getMethod()};
 
@@ -474,13 +474,7 @@ export default class WsEndpoint {
         } else if (req.getHeader('x-real-ip') !== '') {
           userData.ip = req.getHeader('x-real-ip');
         }
-        
-        console.log('DEBUG WS Upgrade', {
-          forwardedFor: req.getHeader('x-forwarded-for'),
-          realIp: req.getHeader('x-real-ip'),
-          remoteAddr: decodeIPv4(res.getRemoteAddressAsText())
-        });
-        
+
         req.forEach((title, value) => {
           userData.headers[title] = value;
         });
@@ -502,10 +496,8 @@ export default class WsEndpoint {
           headers: {},
           createdAt: now,
         };
-        
-        const userData = connection.getUserData().myData;
 
-        this.log.info('DEBUG: Open connection. RemoteAddress: %s, UserData: %o', decodeIPv4(connection.getRemoteAddress()), connection.getUserData());
+        const userData = connection.getUserData().myData;
 
         if (userData && userData.ip)
           meta.ip = userData.ip;
