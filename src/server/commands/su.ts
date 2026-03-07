@@ -1,3 +1,5 @@
+import fs from 'fs';
+import path from 'path';
 import { LIMITS_SU, LIMITS_SU_WEIGHT } from '../../constants';
 import { BROADCAST_CHAT_SERVER_WHISPER, COMMAND_SU, RESPONSE_COMMAND_REPLY } from '../../events';
 import { MainConnectionId } from '../../types';
@@ -38,6 +40,15 @@ export default class SuperuserCommandHandler extends System {
       player.su.current = true;
 
       this.emit(BROADCAST_CHAT_SERVER_WHISPER, playerId, 'You have superuser rights now.');
+
+      const pendingPath = path.resolve(__dirname, '../../../.update-pending');
+      if (fs.existsSync(pendingPath)) {
+        this.emit(
+          BROADCAST_CHAT_SERVER_WHISPER,
+          playerId,
+          'An update is available! Type /update to apply it.'
+        );
+      }
 
       this.log.info('Player became superuser: %o', {
         playerId,

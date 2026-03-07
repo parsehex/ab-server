@@ -11,6 +11,7 @@ import SuperuserCommandHandler from './commands/su';
 import UpgradeCommandHandler from './commands/upgrade';
 import UpgradesCommandHandler from './commands/upgrades';
 import WelcomeCommandHandler from './commands/welcome';
+import UpdateCommandHandler from './commands/update';
 import Times from './components/times';
 import Connections from './connections';
 import AckMessageHandler from './controllers/ack';
@@ -175,6 +176,7 @@ export default abstract class GameManifest {
       UpgradeCommandHandler,
       UpgradesCommandHandler,
       WelcomeCommandHandler,
+      UpdateCommandHandler,
 
       // Responses.
       AfkDisconnectResponse,

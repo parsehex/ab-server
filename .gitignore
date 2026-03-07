@@ -106,3 +106,4 @@ data/user-stats.json*
 data/sync-state.json*
 
 app-bin
+.update-pending

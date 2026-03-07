@@ -567,6 +567,43 @@ export default class WsEndpoint {
           .end('{"pong":1}');
       })
 
+      .get(`${this.path}/update-available`, (res, req) => {
+        try {
+          const remoteIp = decodeIPv4(res.getRemoteAddress());
+          if (remoteIp !== '127.0.0.1' && remoteIp !== '::1') {
+            res.writeStatus('403 Forbidden').end('Forbidden');
+            return;
+          }
+
+          const pendingPath = path.resolve(__dirname, '../../.update-pending');
+          this.log.info('Update-available endpoint hit from: %s. Writing to: %s', remoteIp, pendingPath);
+
+          try {
+            fs.writeFileSync(pendingPath, '');
+          } catch (err) {
+            console.error(err);
+            this.log.error('Failed to create .update-pending file', err);
+          }
+
+          // Notify all SU players
+          this.storage.playerList.forEach(player => {
+            if (player.su.current) {
+              this.events.emit(
+                'BROADCAST_CHAT_SERVER_WHISPER',
+                player.id.current,
+                'An update is available! Type /update to securely apply it.'
+              );
+            }
+          });
+
+          res.writeHeader('Content-type', 'application/json');
+          res.end('{"success":true}');
+        } catch (e) {
+          console.error("FATAL ERROR IN UPDATE AVAILABLE:", e);
+          res.writeStatus('500 Internal Server Error').end('Error');
+        }
+      })
+
       .get(`${this.path}/`, (res, req) => {
         const gameModeResponse =
           this.storage.gameModeAPIResponse === ""
@@ -595,6 +632,7 @@ export default class WsEndpoint {
       })
 
       .any(`${this.path}/*`, (res, req) => {
+        this.log.info('Wildcard endpoint hit: %s', req.getUrl());
         if (!frontendPath) {
           res.writeStatus("404 Not Found").end("");
           return;

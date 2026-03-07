@@ -17,6 +17,7 @@ import {
   COMMAND_UPGRADE,
   COMMAND_USURP,
   COMMAND_WELCOME,
+  COMMAND_UPDATE,
   ROUTE_COMMAND,
 } from '../../events';
 import { has } from '../../support/objects';
@@ -50,6 +51,7 @@ export default class CommandMessageHandler extends System {
       server: COMMAND_SERVER,
       spectators: COMMAND_SPECTATORS,
       su: COMMAND_SU,
+      update: COMMAND_UPDATE,
       upgrades: COMMAND_DROP_UPGRADE,
       welcome: COMMAND_WELCOME,
 
