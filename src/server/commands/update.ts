@@ -54,11 +54,14 @@ export default class UpdateCommandHandler extends System {
 
     try {
       const scriptPath = path.resolve(__dirname, '../../../../scripts/setup.js');
+      const logPath = path.resolve(__dirname, '../../../update.log');
       const args = [scriptPath];
 
+      const logFile = fs.openSync(logPath, 'a');
+      
       const child = spawn(process.execPath, args, {
         detached: true,
-        stdio: 'ignore'
+        stdio: ['ignore', logFile, logFile]
       });
 
       child.on('error', (err) => {
@@ -66,6 +69,8 @@ export default class UpdateCommandHandler extends System {
       });
 
       child.unref();
+
+      fs.closeSync(logFile);
 
       this.log.info('Update command triggered setup.js by SU player: %o', {
         playerId,
