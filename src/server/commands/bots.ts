@@ -1,6 +1,10 @@
 import fs from 'fs';
 import path from 'path';
-import { BROADCAST_CHAT_SERVER_WHISPER, COMMAND_BOTS } from '../../events';
+import {
+  BROADCAST_CHAT_SERVER_WHISPER,
+  BROADCAST_CHAT_SERVER_PUBLIC,
+  COMMAND_BOTS,
+} from '../../events';
 import { MainConnectionId } from '../../types';
 import { System } from '../system';
 import { runCommandDetached } from '../utils/run_command';
@@ -43,7 +47,26 @@ export default class BotsCommandHandler extends System {
 
     try {
       const envBotsPath = path.resolve(__dirname, '../../../../.env.bots');
+      let oldNumBots = 4;
+
+      if (fs.existsSync(envBotsPath)) {
+        try {
+          const content = fs.readFileSync(envBotsPath, 'utf8');
+          const match = content.match(/NUM_BOTS=(\d+)/);
+          if (match) {
+            oldNumBots = parseInt(match[1], 10);
+          }
+        } catch (err) {
+          this.log.error('Failed to read old bot count from .env.bots', err);
+        }
+      }
+
       fs.writeFileSync(envBotsPath, `NUM_BOTS=${numBots}\n`);
+
+      this.emit(
+        BROADCAST_CHAT_SERVER_PUBLIC,
+        `Bot count changing: ${oldNumBots} -> ${numBots}. Bots will return in ~30s.`
+      );
 
       // restart via systemctl --user restart ab-bot
       runCommandDetached('systemctl', ['--user', 'restart', 'ab-bot'], this.log).catch(
@@ -52,9 +75,9 @@ export default class BotsCommandHandler extends System {
         }
       );
 
-      this.log.info('Bot count updated to %d by SU player: %o', numBots, {
+      this.log.info('Bot count updated to %d from %d by SU player: %o', numBots, oldNumBots, {
         playerId,
-        playerName: player.name.current
+        playerName: player.name.current,
       });
     } catch (err) {
       this.log.error('Failed to update .env.bots or restart ab-bot', err);
