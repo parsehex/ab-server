@@ -101,7 +101,7 @@ export default class GameChat extends System {
         return 'Usage: #assist <player | me>. Directs nearby bots to follow and protect the specified player.';
 
       case 'buddy':
-        return 'Usage: #buddy <n>. Assigns <n> bots to follow and protect each active player on the team.';
+        return 'Buddy mode (WIP)\nUsage: #buddy <n>. Assigns <n> bots to follow and protect each active player on the team.';
 
       case 'drop':
       case 'f':
