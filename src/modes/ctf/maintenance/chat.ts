@@ -30,10 +30,9 @@ export default class GameChat extends System {
   private readonly responseAttackBlock =
     "This command isn't allowed: https://github.com/wight-airmash/ab-server/issues/53";
 
-  private readonly responseQBotsHelp = `Commands: #cap (or #capture, #escort),
-  #recap (or #recover), #defend, #auto, #assist <player | me>, #drop, #leader <player>, #status.
-  Type #help <command without #> to see more details.
-  If you play on starma.sh, you can bind those commands in team radio menu (key x).
+  private readonly responseBotHelp = `Commands: #cap, #recap, #auto, #assist, #buddy, #drop, #status, #type, #leader, #challenge-leader.
+  Only the team leader can run most commands.
+  Type #help <command> (e.g., #help assist) for details.
   `;
 
   private framesPassed = 0;
@@ -63,17 +62,66 @@ export default class GameChat extends System {
   }
 
   protected static isHelpCommand(msg: string): boolean {
-    if (msg.charAt(0) !== '#' || msg.length > 5) {
+    if (msg.charAt(0) !== '#') {
       return false;
     }
 
-    const command = msg.toLowerCase();
+    return msg.toLowerCase().startsWith('#help');
+  }
 
-    if (command === '#help') {
-      return true;
+  protected getHelpResponse(msg: string): string {
+    const query = msg.toLowerCase().replace('#help', '').trim();
+
+    if (query === '') {
+      return this.responseBotHelp;
     }
 
-    return false;
+    switch (query) {
+      case 'cap':
+      case 'capture':
+      case 'escort':
+      case 'c':
+      case 'e':
+        return 'Attack mode: Bots focus on the enemy flag or escort the teammate carrying it.';
+
+      case 'recap':
+      case 'recover':
+      case 'defend':
+      case 'd':
+      case 'r':
+        return 'Defense mode: Bots stay near our flag base or hunt for our dropped flag.';
+
+      case 'auto':
+        return 'Auto mode (default): Bots balance attack and defense based on proximity and team needs.';
+
+      case 'assist':
+      case 'protect':
+      case 'a':
+      case 'p':
+        return 'Usage: #assist <player | me>. Directs nearby bots to follow and protect the specified player.';
+
+      case 'buddy':
+        return 'Usage: #buddy <n>. Assigns <n> bots to follow and protect each active player on the team.';
+
+      case 'drop':
+      case 'f':
+        return 'Usage: #drop (or #f). Asks the bot carrying the flag to drop it near you (must be teammate).';
+
+      case 'status':
+        return 'Status: Bots report current team composition, bot counts, and leadership status.';
+
+      case 'type':
+        return 'Usage: #type <1-5 | distribute | random>. Changes the plane types used by bots.';
+
+      case 'leader':
+        return 'Usage: #leader <player>. Manually assigns team leadership to the specified player.';
+
+      case 'challenge-leader':
+        return 'Starts an election to replace the current leader if they are AFK or have a lower score.';
+
+      default:
+        return `Unknown command "${query}". ${this.responseBotHelp}`;
+    }
   }
 
   protected static isAttackCommand(msg: string): boolean {
@@ -106,7 +154,7 @@ export default class GameChat extends System {
     if (GameChat.isAttackCommand(msg)) {
       this.emit(BROADCAST_CHAT_SERVER_WHISPER, playerId, this.responseAttackBlock);
     } else if (GameChat.isHelpCommand(msg)) {
-      this.emit(BROADCAST_CHAT_SERVER_WHISPER, playerId, this.responseQBotsHelp);
+      this.emit(BROADCAST_CHAT_SERVER_WHISPER, playerId, this.getHelpResponse(msg));
     } else {
       this.emit(BROADCAST_CHAT_PUBLIC, playerId, msg);
     }
@@ -151,7 +199,7 @@ export default class GameChat extends System {
     if (GameChat.isAttackCommand(msg)) {
       this.emit(BROADCAST_CHAT_SERVER_WHISPER, playerId, this.responseAttackBlock);
     } else if (GameChat.isHelpCommand(msg)) {
-      this.emit(BROADCAST_CHAT_SERVER_WHISPER, playerId, this.responseQBotsHelp);
+      this.emit(BROADCAST_CHAT_SERVER_WHISPER, playerId, this.getHelpResponse(msg));
     } else if (!GameChat.isShieldTimerAlert(msg)) {
       this.emit(BROADCAST_CHAT_TEAM, playerId, msg);
 
