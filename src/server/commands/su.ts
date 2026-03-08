@@ -1,7 +1,8 @@
 import fs from 'fs';
 import path from 'path';
 import { LIMITS_SU, LIMITS_SU_WEIGHT } from '../../constants';
-import { BROADCAST_CHAT_SERVER_WHISPER, COMMAND_SU, RESPONSE_COMMAND_REPLY } from '../../events';
+import { BROADCAST_CHAT_SERVER_WHISPER, COMMAND_SU, RESPONSE_COMMAND_REPLY, CONNECTIONS_SEND_PACKETS } from '../../events';
+import { SERVER_PACKETS } from '@airbattle/protocol';
 import { MainConnectionId } from '../../types';
 import { System } from '../system';
 
@@ -38,6 +39,16 @@ export default class SuperuserCommandHandler extends System {
       const player = this.storage.playerList.get(playerId);
 
       player.su.current = true;
+
+      this.emit(
+        CONNECTIONS_SEND_PACKETS,
+        {
+          c: SERVER_PACKETS.SERVER_CUSTOM,
+          type: 99,
+          data: JSON.stringify({ id: playerId, su: true }),
+        },
+        [...this.storage.mainConnectionIdList]
+      );
 
       this.emit(BROADCAST_CHAT_SERVER_WHISPER, playerId, 'You have superuser rights now.');
 

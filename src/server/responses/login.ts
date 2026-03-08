@@ -41,6 +41,7 @@ export default class LoginResponse extends System {
     const loggedInPlayer = this.storage.playerList.get(connection.playerId);
     const players: ServerPackets.LoginPlayer[] = [];
     const bots: ServerPackets.LoginBot[] = [];
+    const suPlayers: number[] = [];
     const playersIterator = this.storage.playerList.values();
     let player: Player = playersIterator.next().value;
 
@@ -77,6 +78,10 @@ export default class LoginResponse extends System {
         });
       }
 
+      if (player.su.current) {
+        suPlayers.push(player.id.current);
+      }
+
       player = playersIterator.next().value;
     }
 
@@ -97,5 +102,17 @@ export default class LoginResponse extends System {
       } as ServerPackets.Login,
       connectionId
     );
+
+    if (suPlayers.length > 0) {
+      this.emit(
+        CONNECTIONS_SEND_PACKETS,
+        {
+          c: SERVER_PACKETS.SERVER_CUSTOM,
+          type: 99,
+          data: JSON.stringify({ suPlayers }),
+        },
+        connectionId
+      );
+    }
   }
 }
