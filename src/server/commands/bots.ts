@@ -36,52 +36,84 @@ export default class BotsCommandHandler extends System {
       return;
     }
 
-    const numBots = parseInt(data, 10);
+    const args = data.split(' ');
+    const subcommand = args[0].toLowerCase();
+    const value = args.slice(1).join(' ');
 
-    if (isNaN(numBots) || numBots < 0 || numBots > 50) {
-      this.emit(BROADCAST_CHAT_SERVER_WHISPER, playerId, 'Invalid bot count. Please specify a number between 0 and 50.');
+    const mapping = {
+      num: 'NUM_BOTS',
+      type: 'BOTS_TYPE',
+      character: 'BOTS_CHARACTER',
+      flag: 'BOTS_FLAG',
+    };
+
+    if (!mapping[subcommand]) {
+      this.emit(
+        BROADCAST_CHAT_SERVER_WHISPER,
+        playerId,
+        'Usage: /bots <num|type|character|flag> <value>'
+      );
       return;
     }
 
-    this.emit(BROADCAST_CHAT_SERVER_WHISPER, playerId, `Updating bot count to ${numBots} and restarting ab-bot service...`);
+    if (!value) {
+      this.emit(BROADCAST_CHAT_SERVER_WHISPER, playerId, `Please specify a value for ${subcommand}.`);
+      return;
+    }
+
+    const envKey = mapping[subcommand];
+
+    if (subcommand === 'num') {
+      const numBots = parseInt(value, 10);
+      if (isNaN(numBots) || numBots < 0 || numBots > 50) {
+        this.emit(BROADCAST_CHAT_SERVER_WHISPER, playerId, 'Invalid bot count. Please specify a number between 0 and 50.');
+        return;
+      }
+    }
+
+    this.emit(BROADCAST_CHAT_SERVER_WHISPER, playerId, `Updating ${subcommand} to ${value} and restarting ab-bot service...`);
 
     try {
       const envBotsPath = path.resolve(__dirname, '../../../../.env.bots');
-      let oldNumBots = 4;
+      let envContent = '';
 
       if (fs.existsSync(envBotsPath)) {
-        try {
-          const content = fs.readFileSync(envBotsPath, 'utf8');
-          const match = content.match(/NUM_BOTS=(\d+)/);
-          if (match) {
-            oldNumBots = parseInt(match[1], 10);
-          }
-        } catch (err) {
-          this.log.error('Failed to read old bot count from .env.bots', err);
-        }
+        envContent = fs.readFileSync(envBotsPath, 'utf8');
       }
 
-      fs.writeFileSync(envBotsPath, `NUM_BOTS=${numBots}\n`);
+      const lines = envContent.split('\n');
+      let found = false;
+      const newLines = lines.map((line) => {
+        if (line.startsWith(`${envKey}=`)) {
+          found = true;
+          return `${envKey}=${value}`;
+        }
+        return line;
+      });
+
+      if (!found) {
+        newLines.push(`${envKey}=${value}`);
+      }
+
+      fs.writeFileSync(envBotsPath, newLines.join('\n').trim() + '\n');
 
       this.emit(
         BROADCAST_CHAT_SERVER_PUBLIC,
-        `Bot count changing: ${oldNumBots} -> ${numBots}. Bots will return in ~30s.`
+        `Bot ${subcommand} changing to: ${value}. Bots will return in ~30s.`
       );
 
       // restart via systemctl --user restart ab-bot
-      runCommandDetached('systemctl', ['--user', 'restart', 'ab-bot'], this.log).catch(
-        (err) => {
-          this.log.error('Failed to restart ab-bot service:', err);
-        }
-      );
+      runCommandDetached('systemctl', ['--user', 'restart', 'ab-bot'], this.log).catch((err) => {
+        this.log.error('Failed to restart ab-bot service:', err);
+      });
 
-      this.log.info('Bot count updated to %d from %d by SU player: %o', numBots, oldNumBots, {
+      this.log.info('Bot %s updated to %s by SU player: %o', subcommand, value, {
         playerId,
         playerName: player.name.current,
       });
     } catch (err) {
       this.log.error('Failed to update .env.bots or restart ab-bot', err);
-      this.emit(BROADCAST_CHAT_SERVER_WHISPER, playerId, 'Failed to update bot count. Check server logs.');
+      this.emit(BROADCAST_CHAT_SERVER_WHISPER, playerId, 'Failed to update bot config. Check server logs.');
     }
   }
 }
