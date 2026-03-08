@@ -12,6 +12,7 @@ import UpgradeCommandHandler from './commands/upgrade';
 import UpgradesCommandHandler from './commands/upgrades';
 import WelcomeCommandHandler from './commands/welcome';
 import UpdateCommandHandler from './commands/update';
+import GameUpdateNotifier from './maintenance/update-notifier';
 import Times from './components/times';
 import Connections from './connections';
 import AckMessageHandler from './controllers/ack';
@@ -271,6 +272,7 @@ export default abstract class GameManifest {
       GameMute,
       GameSpectating,
       GameRankings,
+      GameUpdateNotifier,
 
       // Periodic.
       PingPeriodic,
