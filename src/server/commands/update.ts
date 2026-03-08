@@ -34,7 +34,7 @@ export default class UpdateCommandHandler extends System {
 
     const isForced = data?.toLowerCase().includes('force');
     const pendingPath = path.resolve(__dirname, '../../../.update-pending');
-    
+
     if (!isForced && !fs.existsSync(pendingPath)) {
       this.emit(BROADCAST_CHAT_SERVER_WHISPER, playerId, 'There are no pending updates available. Use "/update force" to override.');
       return;
@@ -42,7 +42,7 @@ export default class UpdateCommandHandler extends System {
 
     this.emit(BROADCAST_CHAT_SERVER_WHISPER, playerId, `Update ${isForced ? 'FORCED' : 'confirmed'}. Starting build and restart process...`);
 
-    this.emit(BROADCAST_CHAT_SERVER_PUBLIC, 'Server update in progress. A restart will occur shortly.');
+    this.emit(BROADCAST_CHAT_SERVER_PUBLIC, 'Server update in progress. A restart may occur shortly.');
 
     if (fs.existsSync(pendingPath)) {
       try {
@@ -55,18 +55,18 @@ export default class UpdateCommandHandler extends System {
     try {
       const scriptPath = path.resolve(__dirname, '../../../../scripts/setup.js');
       const args = [scriptPath];
-      
+
       const child = spawn(process.execPath, args, {
         detached: true,
         stdio: 'ignore'
       });
-      
+
       child.on('error', (err) => {
         this.log.error('Failed to start update script:', err);
       });
-      
+
       child.unref();
-      
+
       this.log.info('Update command triggered setup.js by SU player: %o', {
         playerId,
         playerName: player.name.current,
