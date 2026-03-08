@@ -1,9 +1,9 @@
-import { spawn } from 'child_process';
-import path from 'path';
 import fs from 'fs';
+import path from 'path';
 import { BROADCAST_CHAT_SERVER_WHISPER, BROADCAST_CHAT_SERVER_PUBLIC, COMMAND_UPDATE } from '../../events';
 import { MainConnectionId } from '../../types';
 import { System } from '../system';
+import { runCommandDetached } from '../utils/run_command';
 
 export default class UpdateCommandHandler extends System {
   constructor({ app }) {
@@ -59,18 +59,14 @@ export default class UpdateCommandHandler extends System {
 
       const logFile = fs.openSync(logPath, 'a');
       
-      const child = spawn(process.execPath, args, {
-        detached: true,
+      runCommandDetached(process.execPath, args, this.log, {
         stdio: ['ignore', logFile, logFile]
+      }).then(() => {
+        fs.closeSync(logFile);
+      }).catch((err) => {
+        this.log.error('Failed to run update script:', err);
+        fs.closeSync(logFile);
       });
-
-      child.on('error', (err) => {
-        this.log.error('Failed to start update script:', err);
-      });
-
-      child.unref();
-
-      fs.closeSync(logFile);
 
       this.log.info('Update command triggered setup.js by SU player: %o', {
         playerId,

@@ -1,9 +1,9 @@
 import fs from 'fs';
 import path from 'path';
-import { spawn } from 'child_process';
 import { BROADCAST_CHAT_SERVER_WHISPER, COMMAND_BOTS } from '../../events';
 import { MainConnectionId } from '../../types';
 import { System } from '../system';
+import { runCommandDetached } from '../utils/run_command';
 
 export default class BotsCommandHandler extends System {
   constructor({ app }) {
@@ -45,24 +45,17 @@ export default class BotsCommandHandler extends System {
       const envBotsPath = path.resolve(__dirname, '../../../../.env.bots');
       fs.writeFileSync(envBotsPath, `NUM_BOTS=${numBots}\n`);
 
-      try {
-        // restart via systemctl --user restart ab-bot
-        const child = spawn('systemctl', ['--user', 'restart', 'ab-bot'], {
-          detached: true,
-          stdio: 'ignore'
-        });
-
-        child.on('error', (err) => {
+      // restart via systemctl --user restart ab-bot
+      runCommandDetached('systemctl', ['--user', 'restart', 'ab-bot'], this.log).catch(
+        (err) => {
           this.log.error('Failed to restart ab-bot service:', err);
-        });
+        }
+      );
 
-        child.unref();
-
-        this.log.info('Bot count updated to %d by SU player: %o', numBots, {
-          playerId,
-          playerName: player.name.current
-        });
-      } catch (e) {}
+      this.log.info('Bot count updated to %d by SU player: %o', numBots, {
+        playerId,
+        playerName: player.name.current
+      });
     } catch (err) {
       this.log.error('Failed to update .env.bots or restart ab-bot', err);
       this.emit(BROADCAST_CHAT_SERVER_WHISPER, playerId, 'Failed to update bot count. Check server logs.');
