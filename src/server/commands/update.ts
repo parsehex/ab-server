@@ -56,9 +56,13 @@ export default class UpdateCommandHandler extends System {
       const scriptPath = path.resolve(__dirname, '../../../../scripts/setup.js');
       const args = [scriptPath];
       
-      const child = spawn('node', args, {
+      const child = spawn(process.execPath, args, {
         detached: true,
         stdio: 'ignore'
+      });
+      
+      child.on('error', (err) => {
+        this.log.error('Failed to start update script:', err);
       });
       
       child.unref();
