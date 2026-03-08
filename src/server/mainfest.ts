@@ -12,6 +12,7 @@ import UpgradeCommandHandler from './commands/upgrade';
 import UpgradesCommandHandler from './commands/upgrades';
 import WelcomeCommandHandler from './commands/welcome';
 import UpdateCommandHandler from './commands/update';
+import BotsCommandHandler from './commands/bots';
 import GameUpdateNotifier from './maintenance/update-notifier';
 import Times from './components/times';
 import Connections from './connections';
@@ -178,6 +179,7 @@ export default abstract class GameManifest {
       UpgradesCommandHandler,
       WelcomeCommandHandler,
       UpdateCommandHandler,
+      BotsCommandHandler,
 
       // Responses.
       AfkDisconnectResponse,
