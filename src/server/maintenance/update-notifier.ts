@@ -29,7 +29,7 @@ export default class GameUpdateNotifier extends System {
         const projects = data.rebuiltProjects || [];
 
         if (projects.length > 0) {
-          const message = `Server update complete! Rebuilt: ${projects.join(', ')}.`;
+          const message = `Update complete, parts updated: ${projects.join(', ')}.`;
 
           this.emit(BROADCAST_CHAT_SERVER_PUBLIC, message);
         }
