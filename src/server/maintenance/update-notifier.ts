@@ -13,13 +13,11 @@ export default class GameUpdateNotifier extends System {
   }
 
   onGameStart(): void {
-    // Check once on startup
     this.checkSummary();
 
-    // And then every 15 seconds for "hot" updates that don't restart the server
-    setInterval(() => {
+    setTimeout(() => {
       this.checkSummary();
-    }, 15000);
+    }, 30000);
   }
 
   private checkSummary(): void {
@@ -31,8 +29,8 @@ export default class GameUpdateNotifier extends System {
         const projects = data.rebuiltProjects || [];
 
         if (projects.length > 0) {
-          const message = `Update complete! Rebuilt: ${projects.join(', ')}.`;
-          
+          const message = `Server update complete! Rebuilt: ${projects.join(', ')}.`;
+
           this.emit(BROADCAST_CHAT_SERVER_PUBLIC, message);
         }
 
