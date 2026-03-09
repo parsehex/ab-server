@@ -45,14 +45,7 @@ export default class GameMatches extends System {
     if (!this.storage.gameEntity.match.isActive) {
       this.timeout += 1;
 
-      if (this.timeout === 15) {
-        this.emit(
-          BROADCAST_SERVER_MESSAGE,
-          'New game starting in 1 minute',
-          SERVER_MESSAGE_TYPES.ALERT,
-          CTF_NEW_GAME_ALERT_DURATION_MS
-        );
-      } else if (this.timeout === 30) {
+      if (this.timeout === 1) {
         this.emit(
           BROADCAST_SERVER_MESSAGE,
           'Game starting in 30 seconds - shuffling teams',
@@ -61,19 +54,19 @@ export default class GameMatches extends System {
         );
 
         this.emit(CTF_SHUFFLE_PLAYERS);
-      } else if (this.timeout === 50) {
+      } else if (this.timeout === 10) {
         this.emit(
           BROADCAST_SERVER_MESSAGE,
-          'Game starting in 10 seconds',
+          'Game starting in 20 seconds',
           SERVER_MESSAGE_TYPES.ALERT,
           4 * MS_PER_SEC
         );
-      } else if (this.timeout >= 55 && this.timeout < 60) {
-        const left = 60 - this.timeout;
+      } else if (this.timeout >= 25) {
+        const left = 30 - this.timeout;
         let text = 'Game starting in a second';
 
         if (left !== 1) {
-          text = `Game starting in ${60 - this.timeout} seconds`;
+          text = `Game starting in ${left} seconds`;
         }
 
         this.emit(
@@ -83,7 +76,7 @@ export default class GameMatches extends System {
           CTF_COUNTDOWN_DURATION_MS
         );
       } else if (
-        this.timeout >= 60 ||
+        this.timeout >= 30 ||
         (this.storage.gameEntity.match.blue === 0 && this.storage.gameEntity.match.red === 0)
       ) {
         this.emit(
