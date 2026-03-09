@@ -1,4 +1,7 @@
 import { Body, Circle, Collisions } from 'collisions';
+import { Worker, isMainThread } from 'worker_threads';
+import { cpus } from 'os';
+import path from 'path';
 import {
   COLLISIONS_OBJECT_TYPES,
   PLAYERS_ALIVE_STATUSES,
@@ -6,6 +9,7 @@ import {
   POWERUPS_DEFAULT_DURATION_MS,
   SERVER_BOUNCE_DELAY_MS,
   UPGRADES_OWNER_INACTIVITY_TIMEOUT_MS,
+  MAP_SIZE,
 } from '../../constants';
 import {
   BROADCAST_CHAT_SAY_REPEAT,
@@ -60,8 +64,22 @@ const addViewer = (storage: BroadcastStorage, mobId: MobId, viewer: MainConnecti
 export default class GameCollisions extends System {
   private now: number;
 
+  private useParallelVisibility = process.env.USE_PARALLEL_VISIBILITY === 'true';
+
+  private workers: Worker[] = [];
+
+  private mobsBuffer: SharedArrayBuffer;
+
+  private mobsArray: Float32Array;
+
+  private maxMobs = 10000; // Increased limit for projectiles
+
   constructor({ app }) {
     super({ app });
+
+    if (this.useParallelVisibility) {
+      this.initWorkerPool();
+    }
 
     this.listeners = {
       [COLLISIONS_ADD_OBJECT]: this.onAddToCollisionDetector,
@@ -69,6 +87,25 @@ export default class GameCollisions extends System {
       [COLLISIONS_REMOVE_OBJECT]: this.onRemoveFromCollisionDetector,
       [TIMELINE_BEFORE_GAME_START]: this.initDetector,
     };
+  }
+
+  initWorkerPool(): void {
+    const numWorkers = Math.max(1, cpus().length - 1);
+    const workerPath = path.resolve(__dirname, '../../workers/visibility-worker.js');
+
+    this.app.log.info('Initializing visibility worker pool with %d workers', numWorkers);
+
+    for (let i = 0; i < numWorkers; i++) {
+      const worker = new Worker(workerPath);
+      worker.on('error', err => {
+        this.app.log.error('Visibility worker error: %o', { error: err.stack });
+      });
+      this.workers.push(worker);
+    }
+
+    // ID, X, Y, Flags (4 floats per mob)
+    this.mobsBuffer = new SharedArrayBuffer(this.maxMobs * 4 * 4);
+    this.mobsArray = new Float32Array(this.mobsBuffer);
   }
 
   initDetector(): void {
@@ -117,6 +154,11 @@ export default class GameCollisions extends System {
      * Update collisions layer.
      */
     this.app.detector.update();
+
+    if (this.useParallelVisibility && this.workers.length > 0) {
+      this.onDetectCollisionsParallel(broadcast, inactiveBoxes, broadcastBoxes, projectiles);
+      return;
+    }
 
     /**
      * Update viewports (on player's screen objects) and fill
@@ -207,6 +249,360 @@ export default class GameCollisions extends System {
 
     this.storage.broadcast = broadcast;
 
+    /**
+     * Despawn outdated boxes.
+     */
+    {
+      const boxesIterator = inactiveBoxes.values();
+      let boxId: MobId = boxesIterator.next().value;
+
+      while (boxId !== undefined) {
+        this.emit(POWERUPS_DESPAWN, boxId);
+        boxId = boxesIterator.next().value;
+      }
+    }
+
+    /**
+     * Broadcast boxes update events.
+     */
+    {
+      const boxesIterator = broadcastBoxes.values();
+      let boxId: MobId = boxesIterator.next().value;
+
+      while (boxId !== undefined) {
+        this.emit(BROADCAST_MOB_UPDATE_STATIONARY, boxId);
+        boxId = boxesIterator.next().value;
+      }
+    }
+
+    this.emitDelayed();
+
+    /**
+     * Players collisions.
+     */
+    {
+      const playersIterator = this.storage.playerList.values();
+      let player: Player = playersIterator.next().value;
+
+      while (player !== undefined) {
+        if (player.alivestatus.current !== PLAYERS_ALIVE_STATUSES.ALIVE) {
+          player = playersIterator.next().value;
+
+          continue;
+        }
+
+        /**
+         * Handle repel special.
+         */
+        if (player.planestate.repel) {
+          const repel = this.storage.repelList.get(player.id.current);
+          const collisions = repel.hitbox.current.repelPotentials();
+          const repelProjectiles = [];
+          const repelPlayers = [];
+
+          for (let ci = 0; ci < collisions.length; ci += 1) {
+            const id = collisions[ci].id; // eslint-disable-line prefer-destructuring
+
+            if (this.isRepelCollide(repel, id)) {
+              if (collisions[ci].type === COLLISIONS_OBJECT_TYPES.PLAYER) {
+                repelPlayers.push(id);
+              } else {
+                repelProjectiles.push(id);
+              }
+            }
+          }
+
+          /**
+           * This handler emits delayed events.
+           * emitDelayed() should be called.
+           */
+          this.emit(PLAYERS_REPEL_MOBS, player, repelPlayers, repelProjectiles);
+          this.delay(BROADCAST_EVENT_REPEL, player.id.current, repelPlayers, repelProjectiles);
+
+          this.emitDelayed();
+        }
+
+        /**
+         * Handle player collisions.
+         */
+        const collisions = player.hitbox.current.playerPotentials();
+
+        for (let ci = 0; ci < collisions.length; ci += 1) {
+          const id = collisions[ci].id; // eslint-disable-line prefer-destructuring
+          const type = collisions[ci].type; // eslint-disable-line prefer-destructuring
+
+          if (this.isPlayerCollide(player, id)) {
+            /**
+             * CTF flag capture zones.
+             */
+            if (type === COLLISIONS_OBJECT_TYPES.FLAGZONE) {
+              this.emit(CTF_PLAYER_CROSSED_FLAGZONE, player.id.current, id);
+
+              continue;
+            }
+
+            /**
+             * CTF flags.
+             */
+            if (type === COLLISIONS_OBJECT_TYPES.FLAG) {
+              this.emit(CTF_PLAYER_TOUCHED_FLAG, player.id.current, id);
+
+              continue;
+            }
+
+            /**
+             * Mountains.
+             */
+            if (
+              type === COLLISIONS_OBJECT_TYPES.MOUNTAIN &&
+              player.times.lastBounce < this.now - SERVER_BOUNCE_DELAY_MS
+            ) {
+              const hitbox = collisions[ci] as Circle;
+
+              this.emit(PLAYERS_BOUNCE, player.id.current, hitbox.x, hitbox.y, hitbox.radius);
+              this.delay(BROADCAST_EVENT_BOUNCE, player.id.current);
+
+              continue;
+            }
+
+            /**
+             * Boxes.
+             */
+            if (collisions[ci].isBox && !inactiveBoxes.has(id)) {
+              if (type === COLLISIONS_OBJECT_TYPES.UPGRADE) {
+                const box = this.storage.mobList.get(id) as Powerup;
+
+                if (
+                  box.owner.current === player.id.current &&
+                  box.owner.lastDrop > this.now - UPGRADES_OWNER_INACTIVITY_TIMEOUT_MS
+                ) {
+                  continue;
+                }
+              }
+
+              inactiveBoxes.add(id);
+              this.delay(POWERUPS_PICKED, id, player.id.current);
+
+              if (type === COLLISIONS_OBJECT_TYPES.INFERNO) {
+                this.delay(PLAYERS_APPLY_INFERNO, player.id.current, POWERUPS_DEFAULT_DURATION_MS);
+                player.inferno.collected += 1;
+              } else if (type === COLLISIONS_OBJECT_TYPES.SHIELD) {
+                this.delay(PLAYERS_APPLY_SHIELD, player.id.current, POWERUPS_DEFAULT_DURATION_MS);
+                player.shield.collected += 1;
+              } else {
+                player.upgrades.amount += 1;
+                player.upgrades.collected += 1;
+
+                if (!player.delayed.RESPONSE_SCORE_UPDATE) {
+                  player.delayed.RESPONSE_SCORE_UPDATE = true;
+                  this.delay(RESPONSE_SCORE_UPDATE, player.id.current);
+                }
+              }
+            }
+
+            /**
+             * Projectiles.
+             */
+            if (collisions[ci].isProjectile && projectiles.has(id)) {
+              if (player.health.current === PLAYERS_HEALTH.MIN) {
+                break;
+              }
+
+              /**
+               * Projectile is destroyed, don't need to check it later.
+               */
+              projectiles.delete(id);
+
+              this.emit(PLAYERS_HIT, player.id.current, id);
+              this.delay(BROADCAST_PLAYER_HIT, id, [player.id.current]);
+              this.delay(PROJECTILES_DELETE, id);
+
+              if (player.health.current === PLAYERS_HEALTH.MIN) {
+                this.emit(PLAYERS_KILL, player.id.current, id);
+
+                if (!player.delayed.RESPONSE_SCORE_UPDATE) {
+                  player.delayed.RESPONSE_SCORE_UPDATE = true;
+                  this.delay(RESPONSE_SCORE_UPDATE, player.id.current);
+                }
+
+                const projectile = this.storage.mobList.get(id) as Projectile;
+
+                if (this.storage.playerList.has(projectile.owner.current)) {
+                  const enemy = this.storage.playerList.get(projectile.owner.current);
+
+                  if (!enemy.delayed.RESPONSE_SCORE_UPDATE) {
+                    enemy.delayed.RESPONSE_SCORE_UPDATE = true;
+                    this.delay(RESPONSE_SCORE_UPDATE, projectile.owner.current);
+                  }
+                }
+
+                break;
+              }
+            }
+          }
+        }
+
+        player = playersIterator.next().value;
+      }
+    }
+
+    this.emitDelayed();
+
+    /**
+     * Actually all the projectiles should be checked,
+     * but with a large scale factor limit (like default 5500)
+     * it doesn't matter.
+     *
+     * If you use a small SF limit, you need to change this code,
+     * otherwise you will get projectiles sometimes fly through mountains.
+     */
+    {
+      const projectilesIterator = projectiles.values();
+      let projectileId: MobId = projectilesIterator.next().value;
+
+      while (projectileId !== undefined) {
+        const projectile = this.storage.mobList.get(projectileId) as Projectile;
+        const collisions = projectile.hitbox.current.projectilePotentials();
+
+        for (let ci = 0; ci < collisions.length; ci += 1) {
+          if (this.isProjectileCollide(projectile, collisions[ci].id)) {
+            this.emit(BROADCAST_MOB_DESPAWN_COORDS, projectileId);
+            this.emit(PROJECTILES_DELETE, projectileId);
+
+            break;
+          }
+        }
+
+        projectileId = projectilesIterator.next().value;
+      }
+    }
+  }
+
+  private async onDetectCollisionsParallel(
+    broadcast: BroadcastStorage,
+    inactiveBoxes: Set<MobId>,
+    broadcastBoxes: Set<MobId>,
+    projectiles: Set<MobId>
+  ): Promise<void> {
+    const viewports = Array.from(this.storage.viewportList.values()).filter(v =>
+      this.storage.playerMainConnectionList.has(v.id)
+    );
+
+    if (viewports.length === 0) {
+      this.storage.broadcast = broadcast;
+      this.finalizeCollisions(inactiveBoxes, broadcastBoxes, projectiles);
+      return;
+    }
+
+    // 1. Snapshot all entities into SharedArrayBuffer
+    let mobsCount = 0;
+
+    const snapshotEntity = (mob: any, id: number) => {
+      if (mobsCount >= this.maxMobs) return;
+
+      const offset = mobsCount * 4;
+      this.mobsArray[offset] = id;
+      this.mobsArray[offset + 1] = mob.position.x;
+      this.mobsArray[offset + 2] = mob.position.y;
+
+      let flags = 0;
+      if (mob.hitbox?.current?.isProjectile) flags |= 1;
+      if (mob.hitbox?.current?.isBox) flags |= 2;
+
+      this.mobsArray[offset + 3] = flags;
+      mobsCount++;
+    };
+
+    this.storage.playerList.forEach(snapshotEntity);
+    this.storage.mobList.forEach(snapshotEntity);
+
+    // 2. Partition viewports and dispatch to workers
+    const chunkSize = Math.ceil(viewports.length / this.workers.length);
+    const promises = this.workers.map((worker, i) => {
+      const chunk = viewports.slice(i * chunkSize, (i + 1) * chunkSize).map(v => ({
+        id: v.id,
+        x: v.hitbox.x - MAP_SIZE.HALF_WIDTH,
+        y: v.hitbox.y - MAP_SIZE.HALF_HEIGHT,
+        hX: v.horizonX,
+        hY: v.horizonY,
+      }));
+
+      if (chunk.length === 0) return Promise.resolve({ results: {} });
+
+      return new Promise<{ results: Record<number, number[]> }>(resolve => {
+        worker.once('message', resolve);
+        worker.postMessage({
+          viewports: chunk,
+          mobsBuffer: this.mobsBuffer,
+          mobsCount,
+        });
+      });
+    });
+
+    // 3. Wait for results and integrate
+    const allResults = await Promise.all(promises);
+    
+    for (const resultObj of allResults) {
+      const { results } = resultObj as { results: Record<number, number[]> };
+      for (const [vIdStr, currentMobIds] of Object.entries(results)) {
+        const vId = parseInt(vIdStr, 10);
+        const viewport = this.storage.viewportList.get(vId);
+        if (!viewport) continue;
+
+        viewport.leaved = new Set(viewport.current);
+        viewport.current.clear();
+
+        // Player always sees itself
+        addViewer(broadcast, vId, viewport.connectionId);
+
+        for (const mobId of currentMobIds) {
+          viewport.current.add(mobId);
+          addViewer(broadcast, mobId, viewport.connectionId);
+
+          const mob = this.storage.mobList.get(mobId) || this.storage.playerList.get(mobId);
+          if (mob?.hitbox?.current?.isProjectile) {
+            projectiles.add(mobId);
+          }
+
+          if (viewport.leaved.has(mobId)) {
+            viewport.leaved.delete(mobId);
+          } else {
+            if (mob?.hitbox?.current?.isBox) {
+               if (inactiveBoxes.has(mobId)) continue;
+               if (this.isPowerupExpired(mobId)) {
+                 inactiveBoxes.add(mobId);
+               } else {
+                 broadcastBoxes.add(mobId);
+               }
+               continue;
+            }
+
+            if (mob?.hitbox?.current?.isProjectile) {
+               this.delay(BROADCAST_MOB_UPDATE, mobId, vId);
+            } else if (mobId !== vId) {
+               this.delay(BROADCAST_PLAYER_UPDATE, mobId, vId);
+               if (this.storage.playerIdSayBroadcastList.has(mobId)) {
+                 this.emit(BROADCAST_CHAT_SAY_REPEAT, mobId, vId);
+               }
+            }
+          }
+        }
+
+        if (viewport.leaved.size !== 0) {
+           this.delay(RESPONSE_EVENT_LEAVE_HORIZON, viewport.connectionId, viewport.leaved);
+        }
+      }
+    }
+
+    this.storage.broadcast = broadcast;
+    this.finalizeCollisions(inactiveBoxes, broadcastBoxes, projectiles);
+  }
+
+  private finalizeCollisions(
+    inactiveBoxes: Set<MobId>,
+    broadcastBoxes: Set<MobId>,
+    projectiles: Set<MobId>
+  ): void {
     /**
      * Despawn outdated boxes.
      */
