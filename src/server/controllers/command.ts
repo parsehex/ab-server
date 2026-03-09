@@ -84,19 +84,19 @@ export default class CommandMessageHandler extends System {
       this.emit(this.commands[com], connectionId, data);
     } else {
       const botCommands = [
-        'defend', 'def', 'recap', 'recover', 'd', 'r', 
-        'cap', 'capture', 'escort', 'c', 'e', 
-        'auto', 'assist', 'protect', 'a', 'p', 
-        'buddy', 'help', 'leader', 'leader-challenge', 
-        'challenge-leader', 'status', 'type', 'meet'
+        'defend', 'def', 'recap', 'recover', 'd', 'r',
+        'cap', 'capture', 'escort', 'c', 'e',
+        'auto', 'assist', 'protect', 'a', 'p',
+        'buddy', 'help', 'leader', 'leader-challenge',
+        'challenge-leader', 'status', 'type', 'meet', 'yes'
       ];
-      
+
       if (botCommands.includes(com)) {
         let text = `#${com}`;
         if (data && data.trim().length > 0) {
           text += ` ${data.trim()}`;
         }
-        
+
         if (this.storage.connectionList.has(connectionId)) {
           const connection = this.storage.connectionList.get(connectionId);
           this.channel(CHANNEL_CHAT).delay(CHAT_TEAM, connection.playerId, text);
