@@ -20,7 +20,9 @@ import {
   COMMAND_UPDATE,
   COMMAND_BOTS,
   ROUTE_COMMAND,
+  CHAT_TEAM,
 } from '../../events';
+import { CHANNEL_CHAT } from '../../events/channels';
 import { has } from '../../support/objects';
 import { MainConnectionId } from '../../types';
 import { System } from '../system';
@@ -80,6 +82,26 @@ export default class CommandMessageHandler extends System {
 
     if (has(this.commands, com)) {
       this.emit(this.commands[com], connectionId, data);
+    } else {
+      const botCommands = [
+        'defend', 'def', 'recap', 'recover', 'd', 'r', 
+        'cap', 'capture', 'escort', 'c', 'e', 
+        'auto', 'assist', 'protect', 'a', 'p', 
+        'buddy', 'help', 'leader', 'leader-challenge', 
+        'challenge-leader', 'status', 'type', 'meet'
+      ];
+      
+      if (botCommands.includes(com)) {
+        let text = `#${com}`;
+        if (data && data.trim().length > 0) {
+          text += ` ${data.trim()}`;
+        }
+        
+        if (this.storage.connectionList.has(connectionId)) {
+          const connection = this.storage.connectionList.get(connectionId);
+          this.channel(CHANNEL_CHAT).delay(CHAT_TEAM, connection.playerId, text);
+        }
+      }
     }
   }
 }
