@@ -19,6 +19,7 @@ import {
   COMMAND_WELCOME,
   COMMAND_UPDATE,
   COMMAND_BOTS,
+  COMMAND_FREECAM,
   ROUTE_COMMAND,
   CHAT_TEAM,
 } from '../../events';
@@ -58,6 +59,7 @@ export default class CommandMessageHandler extends System {
       bots: COMMAND_BOTS,
       upgrades: COMMAND_DROP_UPGRADE,
       welcome: COMMAND_WELCOME,
+      freecam: COMMAND_FREECAM,
 
       // CTF only.
       elections: COMMAND_ELECTIONS,

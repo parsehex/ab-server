@@ -16,6 +16,8 @@ import {
   SPECTATE_NEXT,
   SPECTATE_PLAYER,
   SPECTATE_PREV,
+  SPECTATE_FREECAM,
+  VIEWPORTS_UPDATE_POSITION,
 } from '../../events';
 import { CHANNEL_SPECTATE } from '../../events/channels';
 import { Flag, Player, PlayerId, Viewports } from '../../types';
@@ -47,6 +49,7 @@ export default class GameSpectating extends System {
       [SPECTATE_NEXT]: this.onSpectateNext,
       [SPECTATE_PLAYER]: this.onSpectatePlayer,
       [SPECTATE_PREV]: this.onSpectatePrev,
+      [SPECTATE_FREECAM]: this.onFreeCam,
     };
   }
 
@@ -345,5 +348,20 @@ export default class GameSpectating extends System {
 
       viewport.subs.delete(subscriberViewportId);
     }
+  }
+
+  private onFreeCam(playerId: PlayerId, x: number, y: number): void {
+    if (!this.storage.playerList.has(playerId)) {
+      return;
+    }
+
+    const player = this.storage.playerList.get(playerId);
+
+    if (player.spectate.current !== 0) {
+      this.unsubscribeFromViewport(player.spectate.current, playerId);
+      player.spectate.current = 0;
+    }
+
+    this.emit(VIEWPORTS_UPDATE_POSITION, playerId, x, y);
   }
 }

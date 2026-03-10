@@ -7,6 +7,8 @@ export default class Spectate extends Component {
 
   public last = 0;
 
+  public lastFreeCamAt = 0;
+
   constructor() {
     super();
   }
