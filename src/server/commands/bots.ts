@@ -97,7 +97,7 @@ export default class BotsCommandHandler extends System {
         }
 
         this.stayTimer = setTimeout(() => {
-          this.updateEnv('BOTS_NO_IDLE', 'false');
+          this.updateEnv('BOTS_NO_IDLE', '');
           runCommandDetached('systemctl', ['--user', 'restart', 'ab-bot'], this.log).catch((err) => {
             this.log.error('Failed to restart ab-bot service after persistence:', err);
           });
@@ -141,6 +141,7 @@ export default class BotsCommandHandler extends System {
     const newLines = lines.map((line) => {
       if (line.startsWith(`${key}=`)) {
         found = true;
+        if (value === '') return '';
         return `${key}=${value}`;
       }
       return line;
