@@ -4,7 +4,7 @@ import { MS_PER_SEC, SECONDS_PER_MINUTE } from './units';
 export const CTF_NEW_GAME_ALERT_DURATION_MS = 15 * MS_PER_SEC;
 
 export const CTF_ALERT_DURATION_SEC = 2;
-
+export const CTF_MATCH_WAIT_TIME_SEC = 30;
 export const CTF_COUNTDOWN_DURATION_MS = 1 * MS_PER_SEC;
 
 export const CTF_WIN_ALERT_DURATION_SEC = 7;

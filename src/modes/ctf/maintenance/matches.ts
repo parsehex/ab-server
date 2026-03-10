@@ -2,6 +2,7 @@ import { CTF_TEAMS, CTF_WIN_BOUNTY, SERVER_MESSAGE_TYPES } from '@airbattle/prot
 import {
   CTF_COUNTDOWN_DURATION_MS,
   CTF_FLAGS_STATE_TO_NEW_PLAYER_BROADCAST_DELAY_MS,
+  CTF_MATCH_WAIT_TIME_SEC,
   CTF_NEW_GAME_ALERT_DURATION_MS,
   MS_PER_SEC,
 } from '../../../constants';
@@ -43,40 +44,10 @@ export default class GameMatches extends System {
 
   onSecondTick(): void {
     if (!this.storage.gameEntity.match.isActive) {
-      this.timeout += 1;
+      this.timeout -= 1;
 
-      if (this.timeout === 1) {
-        this.emit(
-          BROADCAST_SERVER_MESSAGE,
-          'Game starting in 30 seconds - shuffling teams',
-          SERVER_MESSAGE_TYPES.ALERT,
-          5 * MS_PER_SEC
-        );
-
-        this.emit(CTF_SHUFFLE_PLAYERS);
-      } else if (this.timeout === 10) {
-        this.emit(
-          BROADCAST_SERVER_MESSAGE,
-          'Game starting in 20 seconds',
-          SERVER_MESSAGE_TYPES.ALERT,
-          4 * MS_PER_SEC
-        );
-      } else if (this.timeout >= 25) {
-        const left = 30 - this.timeout;
-        let text = 'Game starting in a second';
-
-        if (left !== 1) {
-          text = `Game starting in ${left} seconds`;
-        }
-
-        this.emit(
-          BROADCAST_SERVER_MESSAGE,
-          text,
-          SERVER_MESSAGE_TYPES.ALERT,
-          CTF_COUNTDOWN_DURATION_MS
-        );
-      } else if (
-        this.timeout >= 30 ||
+      if (
+        this.timeout <= 0 ||
         (this.storage.gameEntity.match.blue === 0 && this.storage.gameEntity.match.red === 0)
       ) {
         this.emit(
@@ -91,7 +62,7 @@ export default class GameMatches extends System {
         this.storage.gameEntity.match.start = Date.now();
         this.storage.gameEntity.match.blue = 0;
         this.storage.gameEntity.match.red = 0;
-        this.timeout = 0;
+        this.timeout = CTF_MATCH_WAIT_TIME_SEC;
 
         this.emit(BROADCAST_GAME_FLAG, CTF_TEAMS.BLUE);
         this.emit(BROADCAST_GAME_FLAG, CTF_TEAMS.RED);
@@ -113,6 +84,27 @@ export default class GameMatches extends System {
         this.emit(TIMELINE_GAME_MATCH_START);
 
         this.emit(SCOREBOARD_FORCE_UPDATE);
+      } else if (this.timeout === 10) {
+        this.emit(
+          BROADCAST_SERVER_MESSAGE,
+          `Game starting in 10 seconds`,
+          SERVER_MESSAGE_TYPES.ALERT,
+          4 * MS_PER_SEC
+        );
+      } else if (this.timeout <= 5) {
+        const left = CTF_MATCH_WAIT_TIME_SEC - (CTF_MATCH_WAIT_TIME_SEC - this.timeout);
+        let text = 'Game starting in a second';
+
+        if (left !== 1) {
+          text = `Game starting in ${left} seconds`;
+        }
+
+        this.emit(
+          BROADCAST_SERVER_MESSAGE,
+          text,
+          SERVER_MESSAGE_TYPES.ALERT,
+          CTF_COUNTDOWN_DURATION_MS
+        );
       }
     }
   }
