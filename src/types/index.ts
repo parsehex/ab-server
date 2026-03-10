@@ -220,8 +220,16 @@ export interface PeriodicPowerupTemplate {
   /**
    * Spawn position.
    */
-  posX: number;
-  posY: number;
+  posX?: number;
+  posY?: number;
+
+  /**
+   * Spawn range.
+   */
+  minX?: number;
+  maxX?: number;
+  minY?: number;
+  maxY?: number;
 
   /**
    * Shield or inferno.

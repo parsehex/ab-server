@@ -89,12 +89,15 @@ export default class PowerupsPeriodic extends System {
 
     powerup.interval *= MS_PER_SEC;
 
+    const posX = has(powerup, 'posX') ? powerup.posX : (powerup.minX + powerup.maxX) / 2;
+    const posY = has(powerup, 'posY') ? powerup.posY : (powerup.minY + powerup.maxY) / 2;
+
     this.storage.powerupSpawns.forEach(spawn => {
       if (
-        powerup.posX >= spawn.x &&
-        powerup.posX <= spawn.x + spawn.width &&
-        powerup.posY >= spawn.y &&
-        powerup.posY <= spawn.y + spawn.height
+        posX >= spawn.x &&
+        posX <= spawn.x + spawn.width &&
+        posY >= spawn.y &&
+        posY <= spawn.y + spawn.height
       ) {
         powerup.chunkId = spawn.id;
       }
@@ -105,6 +108,14 @@ export default class PowerupsPeriodic extends System {
 
   private spawnPowerup(powerupIndex: number): void {
     const powerup = this.powerups[powerupIndex];
+
+    if (has(powerup, 'minX') && has(powerup, 'maxX')) {
+      powerup.posX = getRandomInt(powerup.minX, powerup.maxX);
+    }
+
+    if (has(powerup, 'minY') && has(powerup, 'maxY')) {
+      powerup.posY = getRandomInt(powerup.minY, powerup.maxY);
+    }
 
     powerup.mobId = this.helpers.createMobId();
     powerup.lastUpdate = Date.now();

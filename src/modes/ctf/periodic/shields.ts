@@ -35,6 +35,30 @@ export default class ShieldsPeriodic extends System {
         posY: -935,
         type: MOB_TYPES.SHIELD,
       } as PeriodicPowerupTemplate,
+
+      /**
+       * Blue South Entrance Shield.
+       */
+      {
+        interval: 120,
+        randomInterval: this.config.ctf.randomBaseShieldInterval,
+        minX: -9124,
+        maxX: -8687,
+        posY: -582,
+        type: MOB_TYPES.SHIELD,
+      } as PeriodicPowerupTemplate,
+
+      /**
+       * Red South Entrance Shield.
+       */
+      {
+        interval: 120,
+        randomInterval: this.config.ctf.randomBaseShieldInterval,
+        minX: 7767,
+        maxX: 8238,
+        posY: -40,
+        type: MOB_TYPES.SHIELD,
+      } as PeriodicPowerupTemplate,
     ]);
 
     this.log.debug('Periodic shields loaded.');
