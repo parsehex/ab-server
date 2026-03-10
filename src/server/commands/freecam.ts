@@ -5,7 +5,7 @@ import {
 import { CHANNEL_SPECTATE } from '../../events/channels';
 import { MainConnectionId } from '../../types';
 import { System } from '../system';
-import { MAP_SIZE } from '../../constants';
+import { MAP_SIZE, MAP_COORDS } from '../../constants/collisions';
 
 export default class FreeCamCommandHandler extends System {
   constructor({ app }) {
@@ -34,12 +34,16 @@ export default class FreeCamCommandHandler extends System {
       return;
     }
 
-    const x = parseInt(parts[0], 10);
-    const y = parseInt(parts[1], 10);
+    let x = parseInt(parts[0], 10);
+    let y = parseInt(parts[1], 10);
 
     if (isNaN(x) || isNaN(y)) {
       return;
     }
+
+    // Enforce map bounds
+    x = Math.max(MAP_COORDS.MIN_X, Math.min(MAP_COORDS.MAX_X, x));
+    y = Math.max(MAP_COORDS.MIN_Y, Math.min(MAP_COORDS.MAX_Y, y));
 
     // Anti-Abuse (Cheap): Distance and Speed validation
     const viewport = this.storage.viewportList.get(connection.playerId);
