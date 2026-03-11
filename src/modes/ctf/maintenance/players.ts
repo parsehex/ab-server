@@ -70,8 +70,10 @@ export default class GamePlayers extends System {
     let y = 0;
     let r = 0;
 
+    const isBotExtraSpawnOff = player.bot.current && getRandomInt(1, 100) > 25;
+
     if (
-      player.bot.current ||
+      isBotExtraSpawnOff ||
       !player.alivestatus.isLastStateKilled ||
       !this.config.ctf.extraSpawns
     ) {
