@@ -48,18 +48,19 @@ export default class BotsCommandHandler extends System {
       character: 'BOTS_CHARACTER',
       flag: 'BOTS_FLAG',
       active: 'BOTS_NO_IDLE',
+      restart: 'RESTART',
     };
 
     if (!mapping[subcommand]) {
       this.emit(
         BROADCAST_CHAT_SERVER_WHISPER,
         playerId,
-        'Usage: /bots <num|type|character|flag|active> [value]'
+        'Usage: /bots <num|type|character|flag|active|restart> [value]'
       );
       return;
     }
 
-    if (!value && subcommand !== 'active') {
+    if (!value && subcommand !== 'active' && subcommand !== 'restart') {
       this.emit(BROADCAST_CHAT_SERVER_WHISPER, playerId, `Please specify a value for ${subcommand}.`);
       return;
     }
@@ -78,6 +79,31 @@ export default class BotsCommandHandler extends System {
         this.emit(BROADCAST_CHAT_SERVER_WHISPER, playerId, 'Invalid bot count. Please specify a number between 0 and 50.');
         return;
       }
+    }
+
+    // Handle restart command specially
+    if (subcommand === 'restart') {
+      this.emit(BROADCAST_CHAT_SERVER_WHISPER, playerId, 'Restarting ab-bot service...');
+      this.emit(
+        BROADCAST_CHAT_SERVER_PUBLIC,
+        `Bots are being restarted. They will return in ~15s. (Ordered by ${player.name.current})`
+      );
+
+      try {
+        // restart via systemctl --user restart ab-bot
+        runCommandDetached('systemctl', ['--user', 'restart', 'ab-bot'], this.log).catch((err) => {
+          this.log.error('Failed to restart ab-bot service:', err);
+        });
+
+        this.log.info('Bots restarted by SU player: %o', {
+          playerId,
+          playerName: player.name.current,
+        });
+      } catch (err) {
+        this.log.error('Failed to restart ab-bot', err);
+        this.emit(BROADCAST_CHAT_SERVER_WHISPER, playerId, 'Failed to restart bots. Check server logs.');
+      }
+      return;
     }
 
     this.emit(BROADCAST_CHAT_SERVER_WHISPER, playerId, `Updating ${subcommand} to ${finalValue || value} and restarting ab-bot service...`);
@@ -109,7 +135,7 @@ export default class BotsCommandHandler extends System {
       } else {
         this.emit(
           BROADCAST_CHAT_SERVER_PUBLIC,
-          `Bot ${subcommand} changing to: ${value}. Bots will return in ~30s.`
+          `Bot ${subcommand} changing to: ${value}. Bots will return in ~15s.`
         );
       }
 
