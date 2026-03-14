@@ -4,6 +4,7 @@ import {
   PLAYERS_ALIVE_STATUSES,
   PLAYERS_HEALTH,
   PLAYERS_SPECTATE_INACTIVITY_MS,
+  SHIPS_TYPES,
 } from '../../constants';
 import {
   ERRORS_SPECTATE_INACTIVITY_HEALTH_REQUIRED,
@@ -273,12 +274,38 @@ export default class GameSpectating extends System {
     }
 
     const currentIndex = this.playerIds.indexOf(spectator.spectate.current);
-    let playerId = spectatorId;
+    const startIndex = currentIndex !== -1 ? (currentIndex + 1) % this.playerIds.length : 0;
+    // avoid auto-spec on prowlers unless we have to
+    let playerId = this.playerIds[startIndex];
+    let fallbackId = playerId;
+    let scanned = 0;
 
-    if (currentIndex !== -1 && currentIndex + 1 < this.playerIds.length) {
-      playerId = this.playerIds[currentIndex + 1];
-    } else {
-      [playerId] = this.playerIds;
+    while (scanned < this.playerIds.length) {
+      const index = (startIndex + scanned) % this.playerIds.length;
+      const candidateId = this.playerIds[index];
+
+      if (this.config.server.typeId !== GAME_TYPES.CTF) {
+        playerId = candidateId;
+        break;
+      }
+
+      const candidate = this.players.get(candidateId);
+      const blueFlag = this.storage.mobList.get(this.storage.ctfFlagBlueId) as Flag;
+      const redFlag = this.storage.mobList.get(this.storage.ctfFlagRedId) as Flag;
+      const isCarrier =
+        candidateId === blueFlag.owner.current || candidateId === redFlag.owner.current;
+
+      if (!candidate || candidate.planetype.current !== SHIPS_TYPES.PROWLER || isCarrier) {
+        playerId = candidateId;
+        break;
+      }
+
+      fallbackId = candidateId;
+      scanned += 1;
+    }
+
+    if (scanned === this.playerIds.length) {
+      playerId = fallbackId;
     }
 
     if (spectator.spectate.current !== playerId) {
