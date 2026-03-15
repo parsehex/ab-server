@@ -1,5 +1,4 @@
 import { ClientPackets } from '@airbattle/protocol';
-import { GAME_TYPES } from '@airbattle/protocol';
 import {
   COMMAND_DROP_FLAG,
   COMMAND_DROP_UPGRADE,
@@ -82,15 +81,6 @@ export default class CommandMessageHandler extends System {
    */
   onMessageReceived(connectionId: MainConnectionId, msg: ClientPackets.Command): void {
     const { com, data } = msg;
-
-    if (this.config.server.typeId === GAME_TYPES.CTF && com === 'drop') {
-      if (this.storage.connectionList.has(connectionId)) {
-        const connection = this.storage.connectionList.get(connectionId);
-        this.channel(CHANNEL_CHAT).delay(CHAT_TEAM, connection.playerId, '#drop');
-      }
-
-      return;
-    }
 
     if (has(this.commands, com)) {
       this.emit(this.commands[com], connectionId, data);
