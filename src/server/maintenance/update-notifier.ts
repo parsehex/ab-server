@@ -27,9 +27,14 @@ export default class GameUpdateNotifier extends System {
       try {
         const data = JSON.parse(fs.readFileSync(summaryPath, 'utf8'));
         const projects = data.rebuiltProjects || [];
+        let newHash = data.newHash || null;
+        if (newHash?.length > 7) {
+          newHash = newHash.substring(0, 7);
+        }
+        const link = newHash ? `https://github.com/parsehex/airbattle-hosting/commit/${newHash}` : '';
 
         if (projects.length > 0) {
-          const message = `Update complete, parts updated: ${projects.join(', ')}.`;
+          const message = `Update complete, parts updated: ${projects.join(', ')}. ${link}`;
 
           this.emit(BROADCAST_CHAT_SERVER_PUBLIC, message);
         }
