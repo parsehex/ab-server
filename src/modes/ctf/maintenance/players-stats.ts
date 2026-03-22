@@ -1,8 +1,5 @@
 import { CTF_TEAMS } from '@airbattle/protocol';
-import { CTF_PLAYERS_COMMAND_BROADCAST_DELAY_MS } from '../../../constants';
 import {
-  BROADCAST_CHAT_PUBLIC,
-  BROADCAST_CHAT_SERVER_PUBLIC,
   BROADCAST_CHAT_SERVER_WHISPER,
   CTF_PLAYER_SWITCHED,
   CTF_TEAMS_RESHUFFLED,
@@ -23,8 +20,6 @@ import { Player, PlayerId } from '../../../types';
  * /players command handler.
  */
 export default class GamePlayersStats extends System {
-  private lastPublicBroadcastAt = 0;
-
   private isStatsOutdated = true;
 
   private cachedResponseMessage = '';
@@ -121,35 +116,17 @@ export default class GamePlayersStats extends System {
     }
   }
 
-  onAnnounceRequest(playerId: PlayerId, command: string): void {
+  onAnnounceRequest(playerId: PlayerId, _command: string): void {
     if (!this.helpers.isPlayerConnected(playerId)) {
       return;
     }
 
     const responseMessage = this.getResponseMessage();
-    const now = Date.now();
-
-    if (
-      command === 'whisper' ||
-      this.lastPublicBroadcastAt > now - CTF_PLAYERS_COMMAND_BROADCAST_DELAY_MS ||
-      this.helpers.isPlayerMuted(playerId)
-    ) {
-      this.emit(BROADCAST_CHAT_SERVER_WHISPER, playerId, responseMessage);
-    } else {
-      this.lastPublicBroadcastAt = now;
-
-      this.emit(BROADCAST_CHAT_PUBLIC, playerId, '/players');
-      this.emit(BROADCAST_CHAT_SERVER_PUBLIC, responseMessage);
-    }
+    this.emit(BROADCAST_CHAT_SERVER_WHISPER, playerId, responseMessage);
   }
 
   onTeamCaptured(): void {
-    const now = Date.now();
-
-    if (this.lastPublicBroadcastAt <= now - CTF_PLAYERS_COMMAND_BROADCAST_DELAY_MS) {
-      this.lastPublicBroadcastAt = now;
-
-      this.emit(BROADCAST_CHAT_SERVER_PUBLIC, this.getResponseMessage());
-    }
+    // Keep stats cache fresh after captures without sending chat broadcast spam.
+    this.setStatsOutdated();
   }
 }
